@@ -1,0 +1,167 @@
+.main {
+  margin: 0 auto;
+  overflow-y: auto;
+  height: 100vh;
+  width: 100%;
+  padding: calc(80px + 60px) 0;
+  background: rgb(26, 188, 156);
+	background: -moz-linear-gradient(-45deg, rgba(26, 188, 156, 1) 0%, rgba(142, 68, 173, 1) 100%);
+	background: -webkit-linear-gradient(-45deg, rgba(26, 188, 156, 1) 0%, rgba(142, 68, 173, 1) 100%);
+	background: linear-gradient(135deg, rgba(26, 188, 156, 1) 0%, rgba(142, 68, 173, 1) 100%);
+
+  &__main-inner {
+    max-width: 800px;
+    width: 60%;
+    margin: auto;
+
+    &__form {
+      margin: 0 auto;
+      max-width: 400px;
+      width: 100%;
+
+      &__title{
+        font-size: 24px;
+        font-weight: bold;
+        margin-bottom: 30px;
+      }
+
+      #form-preview-icon {
+        width: 50px;
+        margin-bottom: 20px;
+        img {
+          border-radius: 50%;
+          height: 50px;
+          object-fit: cover;
+        }
+      }
+
+      #icon-img {
+        display: none;
+      }
+
+      i {
+        cursor: pointer;
+        font-size: 24px;
+      }
+      
+      i:hover {
+        opacity: 0.6;
+        transform:scale(1.2,1.2);
+      }
+
+      p {
+        margin-bottom: 8px;
+      }
+
+      p:first-of-type {
+        margin-top: 20px;
+      }
+
+      input[type="text"],
+      input[type="email"],
+      input[type="password"] {
+        display: block;
+        max-width: 400px;
+        width: 100%;
+        margin: 6px 0 20px;
+        border-radius: 5px;
+      }
+
+      input[type="submit"] {
+        display: block;
+        margin: 20px auto 0;
+        padding: 3px 20px;
+        cursor: pointer;
+      }
+
+      .member-list {
+        width: 100%;
+        
+        th {
+          text-align: left;
+        }
+
+        td {
+          color: #fff;
+          height: 25px;
+          line-height: 25px;
+
+          .register-member-img {
+            width: 25px;
+            border-radius: 50%;
+            margin-bottom: 10px;
+            display: inline-block;
+            vertical-align: middle;
+          }
+
+          .register-member-name {
+            font-size: 14px;
+            margin: 0 0 10px;
+            display: inline-block;
+            vertical-align: middle;
+          }
+        }
+      }
+
+      #member-check-form {
+        width: 70%;
+        max-width: 70%;
+        display: inline-block;
+      }
+      #member-register-btn {
+        width: 25%;
+        float: right;
+        margin-top: 6px;
+        cursor: pointer;
+      }
+
+      .relative {
+        position: relative;
+
+        .register-members {
+          display: none;
+          background-color: #fff;
+          opacity: 0.9;
+          width: 70%;
+          height: 170px;
+          overflow-y: scroll;
+          border: 2px solid;
+          border-radius: 4px;
+          position: absolute;
+          top: -25px;
+          
+          li {
+            border-radius: 4px;
+            padding: 0 10px;
+            cursor: pointer;
+            height: 40px;
+            line-height: 40px;
+          }
+          li:hover {
+            background-color: #ccc;
+          }
+
+          .register-member-img {
+            width: 25px;
+            border-radius: 50%;
+            display: inline-block;
+            vertical-align: middle;
+          }
+          
+          .register-member-name {
+            font-size: 14px;
+            margin: 0;
+            display: inline-block;
+            vertical-align: middle;
+          }
+        }
+      }
+    }
+  }
+}
+
+@include mq(md) {
+  .main__main-inner {
+    width: 90%;
+  }
+}

@@ -11,6 +11,9 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
+Route::get('/', 'TeamController@index');
+
+Route::group([], function () {
+    Route::get('/', 'TeamController@index')->name('team.index');
+    Route::get('/index', 'TeamController@index')->name('team.index');
 });
