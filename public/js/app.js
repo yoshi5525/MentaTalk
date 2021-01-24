@@ -11,8 +11,6 @@ __webpack_require__(/*! ./header */ "./resources/js/header.js");
 
 __webpack_require__(/*! ./mainbar */ "./resources/js/mainbar.js");
 
-__webpack_require__(/*! ./sidebar */ "./resources/js/sidebar.js");
-
 __webpack_require__(/*! ./form */ "./resources/js/form.js");
 
 /***/ }),
@@ -33,27 +31,102 @@ $(function () {
     };
 
     reader.readAsDataURL(e.target.files[0]);
-  });
+  }); // 検索フォームに入力したら、メンバー検索処理
+
   $('#member-check-form').on('input', function () {
-    var str = $(this).val();
+    var str = $(this).val(); // 英数字以外が入力されないようにする
 
     while (str.match(/[^A-Z^a-z\d\-]/)) {
       str = str.replace(/[^A-Z^a-z\d\-]/, "");
-    }
+    } // 入力文字数が10文字になったら、通信を行う
 
-    $(this).val(str);
 
     if ($(this).val().length === 10) {
+      var searchStr = $(this).val();
       $('.register-members').css('display', 'block');
-      $('.register-members').append(buildSearchMember());
+      searchMember(searchStr);
     } else {
       $('.register-members-member').remove();
       $('.register-members').css('display', 'none');
     }
-  });
+  }); // 該当したメンバーをクリックした時に、メンバー一覧に追加する(クリックした要素の削除も行う)
 
-  function buildSearchMember() {
-    var html = "<li class=\"register-members-member\">\n        <img src=\"images/no-image.png\" alt=\"\" class=\"register-member-img\">\n        <p class=\"register-member-name\">\u30E6\u30FC\u30B6\u30FC1</p>\n      </li>";
+  $('body').on('click', '.register-members-member', function () {
+    if ($(this).children('div').length) {
+      var memberId = $(this).children('div').attr('data-member-id');
+      var memberName = $(this).children('div').attr('data-member-name');
+      var memberPhoto = $(this).children('div').attr('data-member-photo');
+      $('.team-member-list').append(buildAddMember(memberId, memberName, memberPhoto));
+      $('.register-members').empty();
+      $('.register-members').css('display', 'none');
+      $('#member-check-form').val('');
+    }
+  }); // 入力文字に基づきデータベース検索
+
+  function searchMember(searchStr) {
+    $.ajax({
+      type: 'GET',
+      url: 'member/index',
+      data: {
+        'team_key': searchStr
+      },
+      dataType: 'json'
+    }).done(function (value) {
+      // 該当メンバーなし
+      if (value.length === 0) {
+        $('.register-members').append(buildSearchMember('該当なし'));
+        return;
+      } // 該当メンバーあり
+
+
+      var registeredMembers = [];
+      var registeredMemberLength = $('.team-member-list td').find('input').length;
+
+      for (var i = 0; i < registeredMemberLength; i++) {
+        registeredMembers.push($('.team-member-list td').find('input')[i]);
+      } // チームに登録済みかチェック
+
+
+      var registeredCheck = true;
+      $.each(registeredMembers, function (i, registeredMember) {
+        if (registeredMember.defaultValue == value[0].id) {
+          registeredCheck = false;
+          return false;
+        }
+      }); // チームに未登録の場合追加する
+
+      if (registeredCheck) {
+        $('.register-members').append(buildSearchMember(value[0]));
+      } else {
+        $('.register-members').append(buildSearchMember('該当なし'));
+      }
+    }).fail(function () {
+      alert('通信失敗');
+    });
+  } // チームメンバー検索結果のHTML生成
+
+
+  function buildSearchMember(member) {
+    // メンバー写真ありの場合
+    if (member.member_photo) {
+      var html = "<li class=\"register-members-member\">\n\t\t\t\t\t<img src=\"images/".concat(member.member_photo, "\" alt=\"\" class=\"register-member-img\">\n\t\t\t\t\t<p class=\"register-member-name\">").concat(member.name, "</p>\n\t\t\t\t\t<div style=\"display:none;\" data-member-id=\"").concat(member.id, "\" data-member-name=\"").concat(member.name, "\" data-member-photo=\"").concat(member.member_photo, "\"></div>\n\t\t\t\t</li>");
+      return html;
+    } else if (member.id) {
+      // メンバー写真なしの場合
+      var _html = "<li class=\"register-members-member\">\n\t\t\t\t\t<img src=\"images/no-image.png\" alt=\"\" class=\"register-member-img\">\n\t\t\t\t\t<p class=\"register-member-name\">".concat(member.name, "</p>\n\t\t\t\t\t<div style=\"display:none;\" data-member-id=\"").concat(member.id, "\" data-member-name=\"").concat(member.name, "\" data-member-photo=\"no-image.png\"></div>\n\t\t\t\t</li>");
+
+      return _html;
+    } else {
+      var _html2 = "<li class=\"register-members-member\">\n\t\t\t\t\t<img src=\"images/no-image.png\" alt=\"\" class=\"register-member-img\">\n\t\t\t\t\t<p class=\"register-member-name\">".concat(member, "</p>\n\t\t\t\t</li>");
+
+      return _html2;
+    }
+  }
+
+  ; // チームメンバー追加のHTML生成
+
+  function buildAddMember(memberId, memberName, memberPhoto) {
+    var html = "<tr>\n\t\t\t\t<td>\n\t\t\t\t\t<img src=\"images/".concat(memberPhoto, "\" alt=\"\" class=\"register-member-img\">\n\t\t\t\t\t<p class=\"register-member-name\">").concat(memberName, "<input type=\"hidden\" name=\"member_ids[]\" value=\"").concat(memberId, "\"></p>\n\t\t\t\t</td>\n\t\t\t</tr>");
     return html;
   }
 
@@ -93,29 +166,126 @@ $(function () {
 /***/ (() => {
 
 $(function () {
-  $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
-  var mainContent = $('.main-content');
-  var mainBar = $('.main-content__main-bar');
-  var messageContent = $('.main-content__main-bar__talk-box__content');
-  var photoBtn = $('#message-photo-btn');
-  var photoCheck = $('#message-photo-check');
-  var tagBtn = $('#tag-btn');
-  var tagCheck = $('#message-tag-check');
-  var talkSendBtn = $('#talk-send');
-  var talkBox = $('.main-content__main-bar__talk-box'); // フォーム共通設定
+  var sideContent = $('.side-content'); // サイドバー全体
 
-  $('.form-reload').on('click', function () {
+  var teamTalkBtn = $('.group-info__talk-room__team-talk'); // チームトークボタン(サイドバー)
+
+  var botTalkBtn = $('.group-info__talk-room__bot-talk'); // botトークボタン(サイドバー)
+
+  var codeListBtn = $('.group-info__talk-room__code-list'); // codeトークボタン(サイドバー)
+
+  var talkBtnList = $('.form-reload'); // チーム,bot,codeボタンのリスト
+
+  var backBtn = $('.back-btn'); // 戻るボタン(トーク画面からサイドバーに)
+
+  var mainContent = $('.main-content'); // トーク画面全体
+
+  var mainBar = $('.main-content__main-bar'); // チームトーク画面
+
+  var talkBox = $('.main-content__main-bar__talk-box'); // チームトークのメッセージ画面
+
+  var messageContent = $('.main-content__main-bar__talk-box__content'); // メッセージブロック
+
+  var messageForm = $('.main-content__main-bar__form'); // チームトーク画面のフォーム
+
+  var photoBtn = $('#message-photo-btn'); // 投稿フォーム画像ボタン
+
+  var tagBtn = $('#tag-btn'); // 投稿フォーム技術タグボタン
+
+  var talkSendBtn = $('#talk-send'); // 投稿フォーム送信ボタン
+
+  var photoCheck = $('#message-photo-check'); // 投稿フォーム画像選択済みチェックマーク
+
+  var tagCheck = $('#message-tag-check'); // 投稿フォーム技術タグ選択済みチェックマーク
+
+  var alertMessage = $('.alert-message'); // データ取得の際のメッセージ表示
+
+  var botPage = $('.main-content__bot-page'); // 検索bot画面
+
+  var botTalkRoom = $('.main-content__bot-page__bot-talk'); // 検索botのインナー
+
+  var codePage = $('.main-content__code-page'); // 登録コード一覧表示画面
+
+  var codeTable = $('#code-table'); // 登録コード表示用テーブル
+  // 画面がパソコンサイズ未満(1139px未満)の時のformを非表示に
+
+  if ($(window).width() < 1140) {
+    $('.main-content').addClass('toggle');
+    $('.main-content__main-bar__form').addClass('toggle');
+  } // 画面読み込み時に、チームトーク画面の最新メッセージを表示
+
+
+  if (document.URL.match(/^http:\/\/127.0.0.1:8000$/) || document.URL.match(/^http:\/\/127.0.0.1:8000\/index$/)) {
+    $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
+  } // コードがDBに登録されていなかったら、Botボタンがクリックできないようにする
+
+
+  if (typeof techs === 'undefined') {
+    botTalkBtn.prop("disabled", true);
+    codeListBtn.prop("disabled", true);
+  } else {
+    botTalkBtn.prop("disabled", false);
+    codeListBtn.prop("disabled", false);
+  } // DBよりメンバー情報を取得できたら、各ページにデータの反映を行う
+
+
+  var openTeamId = 0;
+
+  if (typeof member !== 'undefined') {
+    talkBtnList.on('click', function () {
+      formReset();
+      var openBtnId = $(this).data('btn-id');
+      openTeamId = $(this).data('team-id');
+      var clickBtnName = $(this).text();
+
+      for (var i = 0; i < member.teams.length; i++) {
+        if (typeof messages !== 'undefined' && messages[i].id === openTeamId && clickBtnName.match(/Talk/)) {
+          displayToggle(openBtnId);
+          var messageLength = messages[i].messages.length;
+
+          for (var j = 0; j < messageLength; j++) {
+            talkBox.append(buildTalkMessage(messages[i].messages[j]));
+          }
+        } else if (typeof techs !== 'undefined' && techs[i].id === openTeamId && clickBtnName.match(/Bot/)) {
+          displayToggle(openBtnId);
+          loadMessage(0);
+        } else if (typeof techs !== 'undefined' && techs[i].id === openTeamId && clickBtnName.match(/Code/)) {
+          displayToggle(openBtnId);
+          codeTable.append(buildCodeHTML());
+        }
+      }
+    });
+  } // チームトークボタンをクリックすると、トーク画面の最新メッセージに自動スクロールする
+
+
+  teamTalkBtn.on('click', function () {
+    $('.main-content').scrollTop(mainBar[0].scrollHeight);
+  }); // 戻るボタン押下時、トークルームのリセット
+
+  backBtn.on('click', function () {
     formReset();
-  }); // トークルーム formボタン関係
-  // 画像選択ボタン
+    backBtn.css("display", "none");
+    sideContent.removeClass('toggle');
+    mainContent.addClass('toggle');
+    mainBar.css("display", "block");
+    botPage.css("display", "none");
+    codePage.css("display", "none");
+    messageForm.addClass('toggle');
+    textCountDel();
+    mainContent.css("height", mainContentHeightCheck());
+    talkBox.empty();
+    talkBox.empty();
+    botTalkRoom.empty();
+    $('.add-code-list').empty();
+  }); // トークルームformの画像選択時にチェックを付ける
 
   photoBtn.change(function () {
     photoCheck.css("display", "inline-block");
-  }); // タグ選択ボタン
+  }); // トークルームformのタグ選択ボタン押下時に選択肢一覧を表示する
 
   $('.fa-tags').on('click', function () {
     tagBtn.css("display", "block");
-  }); // タグ選択時
+  }); // // トークルームformのタグ選択時にチェックを付ける
 
   tagBtn.change(function () {
     if ($('option:selected').val() == 0) {
@@ -126,7 +296,7 @@ $(function () {
     }
 
     tagBtn.css("display", "none");
-  }); // トークルーム 文字数カウント・フォームテキストチェック
+  }); // トークルームの投稿フォーム文字数カウントとフォームテキストのチェック
 
   $('#form-text').on('input', function () {
     var textCount = $(this).val().length;
@@ -137,14 +307,23 @@ $(function () {
     } else {
       $(this).next('p').hide();
     }
-  }); // 文字数カウントの表示・非表示
+  }); // テキストエリア操作時の文字数カウント表示・非表示
 
   $('#form-text').focusin(function () {
     $('.text-count').css('display', 'block');
   });
   $('#form-text').focusout(function () {
     $('.text-count').css('display', 'none');
-  }); // トークルーム form送信
+  }); // チームトークルームのメッセージデータの取得と表示(画面一番上にスクロールすることで発火)
+
+  mainContent.scroll(function () {
+    var topDistance = mainContent.scrollTop();
+
+    if (topDistance === 0 && mainBar.css('display') === 'block' && mainContent.css('position') !== 'absolute') {
+      var oldMessageId = messageContent.first().find('input').val();
+      reloadMessages(oldMessageId);
+    }
+  }); // トークルームformの送信ボタンクリック時、データと投稿と表示
 
   talkSendBtn.on('click', function (e) {
     e.preventDefault();
@@ -162,53 +341,194 @@ $(function () {
     }).fail(function () {
       alert('メッセージを送信できませんでした');
     });
-  }); // トークルーム message読み込み
+  }); // bot返答メッセージクリック時(回答する答えの構築)
 
-  mainContent.scroll(function () {
-    var topDistance = mainContent.scrollTop();
+  $('body').on('click', '.res-btn', function () {
+    var resNumber = parseInt($(this).val()); // どの選択肢が選ばれたか回答番号を取得
 
-    if (topDistance == 0 && mainBar.css('display') == 'block') {
-      var oldMessageId = messageContent.first().find('input').val();
-      reloadMessages(oldMessageId);
-    }
-  }); // メソッド一覧
-  // 投稿時フォームのリセット
+    resAnswer(resNumber);
+  });
 
-  function formReset() {
-    $('form')[0].reset();
-    photoCheck.css("display", "none");
-    tagCheck.css("display", "none");
-  } // form文字数確認
+  function resAnswer(resNumber) {
+    var howCheck = ''; // 直前にコード、コマンド、リンクのどれがやり取りされていたかチェック
 
-
-  function messageCount(textCount) {
-    $('#message-count').text(1000 - textCount);
-  } // form入力テキストチェック(code,url)
-
-
-  function techTextCheck(text) {
-    var urlResult = /(ftp|https?):\/\/\S+\.\S+/.test(text);
-    var codeResult = /(<[\w\d ]+>.+<\/[\w\d ]{1,100}>|{.+}.+{.+}|{.*{.*}.*}|(.*{.+}.*))/.test(text);
-    var techSaveFlag = false;
-
-    if (urlResult || codeResult) {
-      techSaveFlag = true;
-    } else {
-      techSaveFlag = false;
+    if ($('.bot-str-text:last').text().match(/コード/)) {
+      howCheck = 'code';
+    } else if ($('.bot-str-text:last').text().match(/コマンド/)) {
+      howCheck = 'command';
+    } else if ($('.bot-str-text:last').text().match(/リンク/)) {
+      howCheck = 'link';
     }
 
-    return techSaveFlag;
-  } // メッセージの表示
+    switch (resNumber) {
+      case 1:
+        howCheck = 'code';
+        loadMessage(1, howCheck);
+        break;
+
+      case 2:
+        howCheck = 'command';
+        loadMessage(2, howCheck);
+        break;
+
+      case 3:
+        howCheck = 'link';
+        loadMessage(3, howCheck);
+        break;
+
+      case 4:
+        loadMessage(4, howCheck);
+        break;
+
+      case 5:
+        loadMessage(5, howCheck);
+        break;
+
+      case 6:
+        loadMessage(6, howCheck);
+        break;
+
+      case 7:
+        loadMessage(7, howCheck);
+        break;
+
+      case 8:
+        loadMessage(8, howCheck);
+        break;
+
+      case 9:
+        loadMessage(9, howCheck);
+        break;
+
+      case 10:
+        loadMessage(10, howCheck);
+        break;
+
+      case 11:
+        loadMessage(11, howCheck);
+        break;
+
+      case 12:
+        loadMessage(12, howCheck);
+        break;
+
+      case 13:
+        loadMessage(13, howCheck);
+        break;
+
+      case 14:
+        loadMessage(14, howCheck);
+        break;
+
+      case 15:
+        loadMessage(15, howCheck);
+        break;
+
+      case 16:
+        loadMessage(16, howCheck);
+        break;
+
+      case 17:
+        loadMessage(17, howCheck);
+        break;
+
+      default:
+        howCheck = '';
+        break;
+    }
+  } // メソッド一覧
+  // クリックされたトークボタンを判断し、画面の表示非表示を行う
 
 
-  function buildTalkMessage(message) {
-    var html = "<div class=\"main-content__main-bar__talk-box__content\">\n        <div class=\"main-content__main-bar__talk-box__content__info\">\n            <div class=\"left-info\">\n                <div class=\"left-info__img\">\n                    <img src=\"images/".concat(message.image, "\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n                </div>\n                <div class=\"left-info__user-name\">\n                    <p>").concat(message.name, "</p>\n                </div>\n            </div>\n            <div class=\"right-info\">\n                <p class=\"right-info__registered-date\">").concat(message.created, "</p>\n            </div>\n        </div>\n        <div class=\"main-content__main-bar__talk-box__content__message\">\n            <div class=\"message-text\">\n                ").concat(message.text, "\n            </div>\n        </div>\n    </div>");
-    return html;
-  }
+  function displayToggle(openedBtn) {
+    // 画面がパソコンサイズ以上(1140px以上)の時の挙動
+    if ($(window).width() >= 1140) {
+      if (openedBtn === 'talk') {
+        mainBar.css("display", "block");
+        messageForm.removeClass('toggle');
+        botPage.css("display", "none");
+        codePage.css("display", "none");
+        textCountDel();
+        mainContent.css("height", mainContentHeightCheck());
+        talkBox.empty();
+        botTalkRoom.empty();
+        $('.add-code-list').empty();
+        $('.main-content').scrollTop(mainBar[0].scrollHeight);
+      } else if (openedBtn === 'bot') {
+        mainBar.css("display", "none");
+        messageForm.addClass('toggle');
+        botPage.css("display", "block");
+        codePage.css("display", "none");
+        textCountDel();
+        mainContent.css("height", mainContentHeightCheck());
+        talkBox.empty();
+        botTalkRoom.empty();
+        $('.add-code-list').empty();
+      } else if (openedBtn === 'code') {
+        mainBar.css("display", "none");
+        messageForm.addClass('toggle');
+        botPage.css("display", "none");
+        codePage.css("display", "block");
+        textCountDel();
+        mainContent.css("height", mainContentHeightCheck());
+        talkBox.empty();
+        botTalkRoom.empty();
+        $('.add-code-list').empty();
+      }
+    } // 画面がパソコンサイズ未満(1139px未満)の時の挙動
 
-  ; // メッセージの読み込み
 
-  var alertMessage = $('.alert-message');
+    if ($(window).width() < 1140) {
+      if (openedBtn === 'talk') {
+        backBtn.css("display", "block");
+        sideContent.addClass('toggle');
+        mainContent.removeClass('toggle');
+        messageForm.removeClass('toggle');
+        textCountDel();
+        mainContent.css("height", mainContentHeightCheck());
+        $('.main-content').scrollTop(mainBar[0].scrollHeight);
+        talkBox.empty();
+        botTalkRoom.empty();
+        $('.add-code-list').empty();
+      } else if (openedBtn === 'bot') {
+        backBtn.css("display", "block");
+        sideContent.addClass('toggle');
+        mainContent.removeClass('toggle');
+        mainBar.css("display", "none");
+        botPage.css("display", "block");
+        textCountDel();
+        mainContent.css("height", mainContentHeightCheck());
+        talkBox.empty();
+        botTalkRoom.empty();
+        $('.add-code-list').empty();
+      } else if (openedBtn === 'code') {
+        backBtn.css("display", "block");
+        sideContent.addClass('toggle');
+        mainContent.removeClass('toggle');
+        mainBar.css("display", "none");
+        codePage.css("display", "block");
+        textCountDel();
+        mainContent.css("height", mainContentHeightCheck());
+        talkBox.empty();
+        botTalkRoom.empty();
+        $('.add-code-list').empty();
+      }
+    }
+  } // mainページの高さ調整(投稿フォームの有無で高さ調整)
+
+
+  function mainContentHeightCheck() {
+    var botPageDisplay = botPage.css('display') == 'block';
+    var codePageDisplay = codePage.css('display') == 'block';
+    var heightCheck = 'calc(100vh - 105px)';
+
+    if (botPageDisplay || codePageDisplay) {
+      heightCheck = '100vh';
+    }
+
+    return heightCheck;
+  } // 新規メッセージの取得と取得時のローダー、メッセージの表示
+
 
   function reloadMessages(oldMessageId) {
     $('.loader').css('display', 'block');
@@ -246,149 +566,75 @@ $(function () {
     });
   }
 
-  ; // ボット form関係
+  ; // 新規メッセージのHTML構築
 
-  var botTalkBtn = $('.group-info__talk-room__bot-talk');
-  var botTalkRoom = $('.main-content__bot-page__bot-talk'); // botルームボタンクリック挙動
+  function buildTalkMessage(message) {
+    if (message.member_photo) {
+      var html = "<div class=\"main-content__main-bar__talk-box__content\">\n            <div class=\"main-content__main-bar__talk-box__content__info\">\n                <div class=\"left-info\">\n                    <div class=\"left-info__img\">\n                        <img src=\"images/".concat(message.member_photo, "\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n                    </div>\n                    <div class=\"left-info__user-name\">\n                        <p data-author-id=\"").concat(message.id, "\">").concat(message.name, "</p>\n                    </div>\n                </div>\n                <div class=\"right-info\">\n                    <p class=\"right-info__registered-date\">").concat(message.pivot.registered_at, "</p>\n                </div>\n            </div>\n            <div class=\"main-content__main-bar__talk-box__content__message\">\n                <div class=\"message-text\">\n                    ").concat(message.pivot.message, "\n                </div>\n            </div>\n        </div>");
+      return html;
+    } else {
+      var _html = "<div class=\"main-content__main-bar__talk-box__content\">\n            <div class=\"main-content__main-bar__talk-box__content__info\">\n                <div class=\"left-info\">\n                    <div class=\"left-info__img\">\n                        <img src=\"images/no-image.png\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n                    </div>\n                    <div class=\"left-info__user-name\">\n                        <p data-author-id=\"".concat(message.id, "\">").concat(message.name, "</p>\n                    </div>\n                </div>\n                <div class=\"right-info\">\n                    <p class=\"right-info__registered-date\">").concat(message.pivot.registered_at, "</p>\n                </div>\n            </div>\n            <div class=\"main-content__main-bar__talk-box__content__message\">\n                <div class=\"message-text\">\n                    ").concat(message.pivot.message, "\n                </div>\n            </div>\n        </div>");
 
-  botTalkBtn.on('click', function () {
-    loadMessage(0);
-  }); // bot返答メッセージクリック挙動
-
-  var howCheck = '';
-  var whatLang = '';
-  $('body').on('click', '.res-btn', function () {
-    var resNumber = parseInt($(this).val());
-
-    switch (resNumber) {
-      case 1:
-        howCheck = 'code';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(1);
-        break;
-
-      case 2:
-        howCheck = 'command';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(2);
-        break;
-
-      case 3:
-        howCheck = 'url';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(3);
-        break;
-
-      case 4:
-        whatLang = 'HTML';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(4);
-        break;
-
-      case 5:
-        whatLang = 'CSS';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(5);
-        break;
-
-      case 6:
-        whatLang = 'JavaScript';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(6);
-        break;
-
-      case 7:
-        whatLang = 'PHP';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(7);
-        break;
-
-      case 8:
-        whatLang = 'Java';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(8);
-        break;
-
-      case 9:
-        whatLang = 'Ruby';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(9);
-        break;
-
-      case 10:
-        whatLang = 'Python';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(10);
-        break;
-
-      case 11:
-        whatLang = 'C';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(11);
-        break;
-
-      case 12:
-        whatLang = 'SQL';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(12);
-        break;
-
-      case 13:
-        whatLang = 'AWS';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(13);
-        break;
-
-      case 14:
-        whatLang = 'MarkDown';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(14);
-        break;
-
-      case 15:
-        whatLang = 'その他';
-        $('.res-btn').prop("disabled", true);
-        loadMessage(15);
-        break;
-
-      case 16:
-        $('.res-btn').prop("disabled", true);
-        loadMessage(16);
-        break;
-
-      case 17:
-        $('.res-btn').prop("disabled", true);
-        loadMessage(17);
-        break;
-
-      default:
-        howCheck = '';
-        whatLang = '';
-        break;
+      return _html;
     }
-  }); // メソッド一覧(ボット関係)
-  // bot, 返答用メッセージの表示
+  }
 
-  function loadMessage(resNumber) {
-    var randomStart = Math.floor(Math.random() * 6 + 5) * 100; // 「500 〜 1000」の範囲で乱数
+  ; // form入力テキストチェック(code,urlが含まれているかを確認)
 
-    var randomEnd = Math.floor(Math.random() * 3 + 1) * 1000; // 「1000 〜 3000」の範囲で乱数
+  function techTextCheck(text) {
+    var urlResult = /(ftp|https?):\/\/\S+\.\S+/.test(text);
+    var codeResult = /(<[\w\d ]+>.+<\/[\w\d ]{1,100}>|{.+}.+{.+}|{.*{.*}.*}|(.*{.+}.*))/.test(text);
+    var techSaveFlag = false;
+
+    if (urlResult || codeResult) {
+      techSaveFlag = true;
+    } else {
+      techSaveFlag = false;
+    }
+
+    return techSaveFlag;
+  } // 投稿時フォームの入力済み文字のリセット
+
+
+  function formReset() {
+    $('form')[0].reset();
+    photoCheck.css("display", "none");
+    tagCheck.css("display", "none");
+  } // formの入力文字数算出
+
+
+  function messageCount(textCount) {
+    $('#message-count').text(1000 - textCount);
+  } // トーク画面の入力文字数リセット
+
+
+  function textCountDel() {
+    $('#message-count').text(1000);
+  } // 選択された回答番号を基にbot, 返答用メッセージの生成メソッド呼び出しと表示
+
+
+  function loadMessage(resNumber, howCheck) {
+    $('.res-btn').prop("disabled", true);
+    var randomStart = Math.floor(Math.random() * 6 + 5) * 100; // 「500 〜 1000」の範囲で乱数(表示所要時間に使用)
+
+    var randomEnd = Math.floor(Math.random() * 3 + 1) * 1000; // 「1000 〜 3000」の範囲で乱数(表示所要時間に使用)
 
     setTimeout(function () {
-      botTalkRoom.append(buildBotMessage(resNumber));
+      botTalkRoom.append(buildBotMessage(resNumber, howCheck));
       $('.main-content').scrollTop($('.main-content__bot-page')[0].scrollHeight);
     }, randomStart);
     setTimeout(function () {
       botTalkRoom.append(selectTalkItems(resNumber));
       $('.main-content').scrollTop($('.main-content__bot-page')[0].scrollHeight);
     }, randomEnd);
-  } // botメッセージ
+  } // 選択された回答番号を基にbot返答メッセージの生成
 
 
-  function buildBotMessage(botMessageFlag) {
+  function buildBotMessage(resNumber, howCheck) {
     var message = '';
+    var messages = [];
 
-    switch (botMessageFlag) {
+    switch (resNumber) {
       case 0:
       case 17:
         message = changePTag("ご用件を教えてください");
@@ -402,10 +648,10 @@ $(function () {
         } else if ($('.bot-str-text:last').text().match(/リンク/)) {
           message = changePTag("どの技術(言語)のリンクが見たいですか？");
           break;
+        } else {
+          message = changePTag("どの技術(言語)のコードが知りたいですか？");
+          break;
         }
-
-        message = changePTag("どの技術(言語)のコードが知りたいですか？");
-        break;
 
       case 2:
         message = changePTag("どの技術(言語)のコマンドが知りたいですか？");
@@ -416,173 +662,51 @@ $(function () {
         break;
 
       case 4:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var htmlCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(htmlCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var htmlCode = changeCode("<html>\n\t<h1>HTML文章です</h1>\n\t<a href=\"http://apple.com\">タグです</a>\n</html>");
-          message = changePreTag(htmlCode);
-        } else {
-          var htmlUrl = "http://www.htmq.com/html/indexm.shtml";
-          message = changeATag(htmlUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 1);
         break;
 
       case 5:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var cssCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(cssCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var cssCode = changeCode("h1 {\n\tcolor: #fff;\n\tfont-size: 14px;\n}");
-          message = changePreTag(cssCode);
-        } else {
-          var cssUrl = "http://www.htmq.com/csskihon/";
-          message = changeATag(cssUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 2);
         break;
 
       case 6:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var jsCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(jsCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var jsCode = changeCode("const btn = $(\'#btn\');\nbtn.on(\'click\', function() {\n\talert(\'error\');\n});");
-          message = changePreTag(jsCode);
-        } else {
-          var jsUrl = "http://semooh.jp/jquery/";
-          message = changeATag(jsUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 3);
         break;
 
       case 7:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var phpCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(phpCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var phpCode = changeCode("<\?php\nfunction calCircleArea($radius) {\n\t$pai = 3.14;\n\t$area = $radius * $radius * $pai;\n\treturn $area;\n}\n\?>");
-          message = changePreTag(phpCode);
-        } else {
-          var phpUrl = "https://www.php.net/manual/ja/langref.php";
-          message = changeATag(phpUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 4);
         break;
 
       case 8:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var javaCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(javaCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var javaCode = changeCode("public void write(String text, String file) throws FileNotFoundException {\n\tPrintStream ps = new PrintStream(file);\n\tps.print(text);\n\tps.close();\n}");
-          message = changePreTag(javaCode);
-        } else {
-          var javaUrl = "https://www.oracle.com/jp/java/technologies/javase/documentation/api-jsp.html";
-          message = changeATag(javaUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 5);
         break;
 
       case 9:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var rubyCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(rubyCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var rubyCode = changeCode("belongs_to :post\nbelongs_to :tag\nvalidates :post_id,presence:true\nvalidates :tag_id,presence:true");
-          message = changePreTag(rubyCode);
-        } else {
-          var rubyUrl = "https://docs.ruby-lang.org/ja/";
-          message = changeATag(rubyUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 6);
         break;
 
       case 10:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var pythonCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(pythonCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var pythonCode = changeCode("import numpy as np\nfrom sklearn.svm import LinearSVC\nimport matplotlib.pyplot as plt\n\nauth = np.genfromtxt(\'CodeIQ_auth.txt\', delimiter=\' \')");
-          message = changePreTag(pythonCode);
-        } else {
-          var pythonUrl = "https://docs.python.org/ja/3/";
-          message = changeATag(pythonUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 7);
         break;
 
       case 11:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var cCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(cCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var cCode = changeCode("void hello(void);\nint tasu(int, int);\n\nint main(void){\n\tint a, b;\n\ta = 1;\n\tb = 3;\n\n\thello();\n\tprintf(\"%d\n\", tasu(a,b));\n\treturn 0;\n}");
-          message = changePreTag(cCode);
-        } else {
-          var cUrl = "https://docs.microsoft.com/ja-jp/cpp/c-language/c-language-reference?view=msvc-160";
-          message = changeATag(cUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 8);
         break;
 
       case 12:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var sqlCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(sqlCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var sqlCode = changeCode("ALTER TABLE users CHANGE user_id id INT;");
-          message = changePreTag(sqlCode);
-        } else {
-          var sqlUrl = "https://dev.mysql.com/doc/refman/5.6/ja/";
-          message = changeATag(sqlUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 9);
         break;
 
       case 13:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var awsCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(awsCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var awsCode = changeCode("[ec2-user@ip-172-31-25-189 ~]$ sudo curl -sL https://rpm.nodesource.com/setup_6.x | sudo bash -");
-          message = changePreTag(awsCode);
-        } else {
-          var awsUrl = "https://docs.aws.amazon.com/ja_jp/general/latest/gr/Welcome.html";
-          message = changeATag(awsUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 10);
         break;
 
       case 14:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var markdownCommand = changeCode("コマンドは見つかりませんでした");
-          message = changePreTag(markdownCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var markdownCode = changeCode("## h1です\n[リンクです](https://apple.com)");
-          message = changePreTag(markdownCode);
-        } else {
-          var markdownUrl = "https://cercopes-z.com/Markdown/";
-          message = changeATag(markdownUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 11);
         break;
 
       case 15:
-        if ($('.bot-str-text:last').text().match(/コマンド/)) {
-          var _markdownCommand = changeCode("コマンドは見つかりませんでした");
-
-          message = changePreTag(_markdownCommand);
-        } else if ($('.bot-str-text:last').text().match(/コード/)) {
-          var _markdownCode = changeCode("## h1です\n[リンクです](https://apple.com)");
-
-          message = changePreTag(_markdownCode);
-        } else {
-          var _markdownUrl = "https://cercopes-z.com/Markdown/";
-          message = changeATag(_markdownUrl);
-        }
-
+        messages = searchTechAnswer(howCheck, 12);
         break;
 
       default:
@@ -590,11 +714,82 @@ $(function () {
         break;
     }
 
-    var html = "<div class=\"main-content__bot-page__bot-talk__talk-content\">\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-info\">\n            <div class=\"left-bot-info\">\n              <div class=\"left-bot-info__img\">\n                <img src=\"images/bot-image.png\" alt=\"\u30DC\u30C3\u30C8\u306E\u30A2\u30A4\u30B3\u30F3\">\n              </div>\n              <div class=\"left-bot-info__bot-name\">\n                <p>\u30C1\u30E3\u30C3\u30C8\u30DC\u30C3\u30C8</p>\n              </div>\n            </div>\n          </div>\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-message\">\n            <div class=\"bot-message-text\">\n              ".concat(message, "\n            </div>\n          </div>\n        </div>");
+    if (messages.length > 0) {
+      for (var i = 0; i < messages.length; i++) {
+        message += messages[i];
+      }
+    }
+
+    var html = "<div class=\"main-content__bot-page__bot-talk__talk-content\">\n        <div class=\"main-content__bot-page__bot-talk__talk-content__bot-info\">\n          <div class=\"left-bot-info\">\n            <div class=\"left-bot-info__img\">\n              <img src=\"images/bot-image.png\" alt=\"\u30DC\u30C3\u30C8\u306E\u30A2\u30A4\u30B3\u30F3\">\n            </div>\n            <div class=\"left-bot-info__bot-name\">\n              <p>\u30C1\u30E3\u30C3\u30C8\u30DC\u30C3\u30C8</p>\n            </div>\n          </div>\n        </div>\n        <div class=\"main-content__bot-page__bot-talk__talk-content__bot-message\">\n          <div class=\"bot-message-text\">\n            ".concat(message, "\n          </div>\n        </div>\n      </div>");
     return html;
+  } // クリックされたボタンを基に、回答をDBより取得する
+
+
+  function searchTechAnswer(howCheck, languageId) {
+    if (typeof techs !== 'undefined') {
+      var _messages = [];
+
+      if (howCheck === 'code') {
+        for (var i = 0; i < techs[openTeamId - 1].techs.length; i++) {
+          if (techs[openTeamId - 1].techs[i].pivot.code !== null && techs[openTeamId - 1].techs[i].pivot.language_id === languageId) {
+            var _message = changeCode(techs[openTeamId - 1].techs[i].pivot.code);
+
+            _messages.push(changePreTag(_message));
+          }
+        }
+      } else if (howCheck === 'command') {
+        for (var _i = 0; _i < techs[openTeamId - 1].techs.length; _i++) {
+          if (techs[openTeamId - 1].techs[_i].pivot.command !== null && techs[openTeamId - 1].techs[_i].pivot.language_id === languageId) {
+            var _message2 = changeCode(techs[openTeamId - 1].techs[_i].pivot.command);
+
+            _messages.push(changePreTag(_message2));
+          }
+        }
+      } else if (howCheck === 'link') {
+        for (var _i2 = 0; _i2 < techs[openTeamId - 1].techs.length; _i2++) {
+          if (techs[openTeamId - 1].techs[_i2].pivot.link !== null && techs[openTeamId - 1].techs[_i2].pivot.language_id === languageId) {
+            var _message3 = changeCode(techs[openTeamId - 1].techs[_i2].pivot.link);
+
+            _messages.push(changeATag(_message3));
+          }
+        }
+      } // 該当するデータが無かったときの処理
+
+
+      if (_messages.length === 0) {
+        var _message4 = changeCode("該当するデータが見つかりませんでした");
+
+        _messages.push(changePreTag(_message4));
+      }
+
+      return _messages;
+    }
+  } // bot回答メッセージの検索コードをpタグに変換
+
+
+  function changePTag(message) {
+    return '<p class="bot-str-text">' + message + '</p>';
   }
 
-  ; // bot回答用メッセージ
+  ; // bot回答メッセージの検索コードをpreタグに変換
+
+  function changePreTag(message) {
+    return '<pre><code>' + message + '</code></pre>';
+  }
+
+  ; // bot回答メッセージの検索コードをaタグに変換
+
+  function changeATag(message) {
+    return '<a href="' + message + '" target="_blank" class="bot-str-link"><pre><code>' + message + '</code></pre></a>';
+  }
+
+  ; // bot回答コードを、HTMLの出力形式に変換
+
+  function changeCode(code) {
+    return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  ; // ユーザー回答用メッセージの生成
 
   function selectTalkItems(botMessageFlag) {
     var messages = [];
@@ -650,163 +845,130 @@ $(function () {
         break;
     }
 
-    var html = "<div class=\"main-content__bot-page__bot-talk__talk-content\">\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-info\">\n            <div class=\"left-bot-info reverse\">\n              <div class=\"left-bot-info__img reverse\">\n                <img src=\"images/no-image.png\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n              </div>\n              <div class=\"left-bot-info__bot-name reverse\">\n                <p>\u30E6\u30FC\u30B6\u30FC1</p>\n              </div>\n            </div>\n          </div>\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-message\">\n            ".concat(selectItem(messages, outputTalk), "\n          </div>\n        </div>");
-    return html;
+    if (member.member_photo) {
+      var html = "<div class=\"main-content__bot-page__bot-talk__talk-content\">\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-info\">\n            <div class=\"left-bot-info reverse\">\n              <div class=\"left-bot-info__img reverse\">\n                <img src=\"images/".concat(member.member_photo, "\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n              </div>\n              <div class=\"left-bot-info__bot-name reverse\">\n                <p>").concat(member.name, "</p>\n              </div>\n            </div>\n          </div>\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-message\">\n            ").concat(selectItem(messages, outputTalk), "\n          </div>\n        </div>");
+      return html;
+    } else if (member) {
+      var _html2 = "<div class=\"main-content__bot-page__bot-talk__talk-content\">\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-info\">\n            <div class=\"left-bot-info reverse\">\n              <div class=\"left-bot-info__img reverse\">\n                <img src=\"images/no-image.png\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n              </div>\n              <div class=\"left-bot-info__bot-name reverse\">\n                <p>".concat(member.name, "</p>\n              </div>\n            </div>\n          </div>\n          <div class=\"main-content__bot-page__bot-talk__talk-content__bot-message\">\n            ").concat(selectItem(messages, outputTalk), "\n          </div>\n        </div>");
+
+      return _html2;
+    }
   }
 
-  ; // bot回答用メッセージの各アイテム
+  ; // ユーザー回答用メッセージの各回答を生成(繰り返し複数表示するボタン)
 
   function selectItem(messages, outputTalk) {
     var html = '';
     var i = outputTalk;
     messages.forEach(function (message) {
-      html += "<div class=\"bot-message-text reverse\">\n            <button class=\"reverse res-btn\" value=\"".concat(i, "\">").concat(message, "</button>\n            <input type=\"hidden\" value=\"").concat(i, "\">\n          </div>");
+      html += "<div class=\"bot-message-text reverse\">\n          <button class=\"reverse res-btn\" value=\"".concat(i, "\">").concat(message, "</button>\n          <input type=\"hidden\" value=\"").concat(i, "\">\n        </div>");
       i++;
     });
     return html;
   }
 
-  ; // 検索コードをpタグに変換
+  ; // code一覧HTMLの生成
 
-  function changePTag(message) {
-    return '<p class="bot-str-text">' + message + '</p>';
+  function buildCodeHTML() {
+    if (typeof techs !== 'undefined') {
+      var trValues;
+
+      for (var i = 0; i < techs[openTeamId - 1].techs.length; i++) {
+        if (techs[openTeamId - 1].techs[i].pivot.code !== null) {
+          var code = changeCode(techs[openTeamId - 1].techs[i].pivot.code);
+          var preCode = changePreTag(code);
+          var languageName = idChangeLanguageName(techs[openTeamId - 1].techs[i].pivot.language_id);
+          var html = "<tr class=\"add-code-list\">\n              <td>".concat(techs[openTeamId - 1].techs[i].name, "</td>\n              <td>").concat(languageName, "</td>\n              <td>").concat(preCode, "</td>\n            </tr>");
+          trValues += html;
+        }
+
+        if (techs[openTeamId - 1].techs[i].pivot.command !== null) {
+          var _code = changeCode(techs[openTeamId - 1].techs[i].pivot.command);
+
+          var pCode = changePTag(_code);
+
+          var _languageName = idChangeLanguageName(techs[openTeamId - 1].techs[i].pivot.language_id);
+
+          var _html3 = "<tr class=\"add-code-list\">\n              <td>".concat(techs[openTeamId - 1].techs[i].name, "</td>\n              <td>").concat(_languageName, "</td>\n              <td>").concat(pCode, "</td>\n            </tr>");
+
+          trValues += _html3;
+        }
+
+        if (techs[openTeamId - 1].techs[i].pivot.link !== null) {
+          var _code2 = changeCode(techs[openTeamId - 1].techs[i].pivot.link);
+
+          var aCode = changeATag(_code2);
+
+          var _languageName2 = idChangeLanguageName(techs[openTeamId - 1].techs[i].pivot.language_id);
+
+          var _html4 = "<tr class=\"add-code-list\">\n              <td>".concat(techs[openTeamId - 1].techs[i].name, "</td>\n              <td>").concat(_languageName2, "</td>\n              <td>").concat(aCode, "</td>\n            </tr>");
+
+          trValues += _html4;
+        }
+      }
+
+      return trValues;
+    }
   }
 
-  ; // 検索コードをpreタグに変換
+  function idChangeLanguageName(id) {
+    var languageName = '';
 
-  function changePreTag(message) {
-    return '<pre><code>' + message + '</code></pre>';
-  }
+    switch (id) {
+      case 1:
+        languageName = 'HTML';
+        break;
 
-  ; // 検索コードをpreタグに変換
+      case 2:
+        languageName = 'CSS';
+        break;
 
-  function changeATag(message) {
-    return '<a href="' + message + '" target="_blank" class="bot-str-link"><pre><code>' + message + '</code></pre></a>';
-  }
+      case 3:
+        languageName = 'JavaScript';
+        break;
 
-  ; // 検索コードを出力形式に変換
+      case 4:
+        languageName = 'PHP';
+        break;
 
-  function changeCode(code) {
-    return code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
+      case 5:
+        languageName = 'Java';
+        break;
 
-  ;
-});
+      case 6:
+        languageName = 'Python';
+        break;
 
-/***/ }),
+      case 7:
+        languageName = 'Kotlin';
+        break;
 
-/***/ "./resources/js/sidebar.js":
-/*!*********************************!*\
-  !*** ./resources/js/sidebar.js ***!
-  \*********************************/
-/***/ (() => {
+      case 8:
+        languageName = 'Swift';
+        break;
 
-$(function () {
-  var mainContent = $('.main-content');
-  var sideContent = $('.side-content');
-  var messageForm = $('.main-content__main-bar__form');
-  var backBtn = $('.back-btn');
-  var teamTalkBtn = $('.group-info__talk-room__team-talk');
-  var botTalkBtn = $('.group-info__talk-room__bot-talk');
-  var codeListBtn = $('.group-info__talk-room__code-list');
-  var mainPage = $('.main-content__main-bar');
-  var botPage = $('.main-content__bot-page');
-  var botPageTalk = $('.main-content__bot-page__bot-talk');
-  var codePage = $('.main-content__code-page');
-  teamTalkBtn.on('click', function () {
-    $('.main-content').scrollTop(mainPage[0].scrollHeight);
-  }); // 画面がパソコンサイズ以上(1140px以上)の時の挙動
+      case 9:
+        languageName = 'C,C++';
+        break;
 
-  if ($(window).width() >= 1140) {
-    teamTalkBtn.on('click', function () {
-      mainPage.css("display", "block");
-      botPage.css("display", "none");
-      codePage.css("display", "none");
-      messageForm.removeClass('toggle');
-      textCountDel();
-      mainContent.css("height", mainContentHeightCheck());
-      $('.main-content').scrollTop(mainPage[0].scrollHeight);
-      botPageTalk.empty();
-    });
-    botTalkBtn.on('click', function () {
-      mainPage.css("display", "none");
-      botPage.css("display", "block");
-      codePage.css("display", "none");
-      textCountDel();
-      mainContent.css("height", mainContentHeightCheck());
-      botPageTalk.empty();
-    });
-    codeListBtn.on('click', function () {
-      mainPage.css("display", "none");
-      botPage.css("display", "none");
-      codePage.css("display", "block");
-      messageForm.addClass('toggle');
-      textCountDel();
-      mainContent.css("height", mainContentHeightCheck());
-      botPageTalk.empty();
-    });
-  } // 画面がパソコンサイズ未満(1139px未満)の時の挙動
+      case 10:
+        languageName = 'R';
+        break;
 
+      case 11:
+        languageName = 'SQL';
+        break;
 
-  if ($(window).width() < 1140) {
-    mainContent.addClass('toggle');
-    messageForm.addClass('toggle');
-    teamTalkBtn.on('click', function () {
-      sideContent.addClass('toggle');
-      mainContent.removeClass('toggle');
-      messageForm.removeClass('toggle');
-      backBtn.css("display", "block");
-      textCountDel();
-      mainContent.css("height", mainContentHeightCheck());
-      $('.main-content').scrollTop(mainPage[0].scrollHeight);
-    });
-    botTalkBtn.on('click', function () {
-      sideContent.addClass('toggle');
-      mainContent.removeClass('toggle');
-      backBtn.css("display", "block");
-      mainPage.css("display", "none");
-      botPage.css("display", "block");
-      textCountDel();
-      mainContent.css("height", mainContentHeightCheck());
-    });
-    codeListBtn.on('click', function () {
-      sideContent.addClass('toggle');
-      mainContent.removeClass('toggle');
-      messageForm.removeClass('toggle');
-      backBtn.css("display", "block");
-      mainPage.css("display", "none");
-      codePage.css("display", "block");
-      textCountDel();
-      mainContent.css("height", mainContentHeightCheck());
-    });
-    backBtn.on('click', function () {
-      mainPage.css("display", "block");
-      botPage.css("display", "none");
-      codePage.css("display", "none");
-      mainContent.addClass('toggle');
-      messageForm.addClass('toggle');
-      sideContent.removeClass('toggle');
-      backBtn.css("display", "none");
-      textCountDel();
-      mainContent.css("height", mainContentHeightCheck());
-      botPageTalk.empty();
-    });
-  }
+      case 12:
+        languageName = 'その他';
+        break;
 
-  function mainContentHeightCheck() {
-    var botPageDisplay = botPage.css('display') == 'block';
-    var codePageDisplay = codePage.css('display') == 'block';
-    var heightCheck = 'calc(100vh - 105px)';
-
-    if (botPageDisplay || codePageDisplay) {
-      heightCheck = '100vh';
+      default:
+        languageName = 'その他';
+        break;
     }
 
-    return heightCheck;
-  }
-
-  function textCountDel() {
-    $('#message-count').text(1000);
+    return languageName;
   }
 });
 

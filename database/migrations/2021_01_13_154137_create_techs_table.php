@@ -4,7 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-class CreateTechesTable extends Migration
+class CreateTechsTable extends Migration
 {
     /**
      * Run the migrations.
@@ -13,7 +13,7 @@ class CreateTechesTable extends Migration
      */
     public function up()
     {
-        Schema::create('teches', function (Blueprint $table) {
+        Schema::create('techs', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->bigInteger('member_id')->unsigned();
             $table->bigInteger('team_id')->unsigned();
@@ -35,6 +35,6 @@ class CreateTechesTable extends Migration
      */
     public function down()
     {
-        Schema::dropIfExists('teches');
+        Schema::dropIfExists('techs');
     }
 }
