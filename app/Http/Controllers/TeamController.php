@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use App\Models\Team;
+use App\Models\Member;
+use Exception;
 
 class TeamController extends Controller
 {
@@ -14,8 +17,21 @@ class TeamController extends Controller
      */
     public function index()
     {
-        $teams = Team::all();
-        return view('teams.index', compact('teams'));
+        // ログインしているidを基に、ユーザー情報を取得
+        $member = Member::with('teams')->find(5);
+        // 所属しているチームidを取得
+        $teamIds = [];
+        for ($i = 0; $i < count($member->teams); $i++) {
+            $teamIds[] = $member->teams[$i]->id;
+        }
+        // 所属しているチームのメンバー一覧を取得
+        $teamMembers = Team::with('members')->find($teamIds);
+        // 所属しているチームのメッセージ一覧を取得
+        $messages = Team::with('messages')->find($teamIds);
+        // 所属しているチームのコード一覧を取得
+        $techs = Team::with('techs')->find($teamIds);
+
+        return view('team.index', compact('member', 'teamMembers', 'messages', 'techs'));
     }
 
     /**
@@ -25,7 +41,7 @@ class TeamController extends Controller
      */
     public function create()
     {
-        //
+        return view('team.create');
     }
 
     /**
@@ -36,7 +52,24 @@ class TeamController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        DB::beginTransaction();
+        try {
+            // 現在時刻の取得
+            $current_date_time = date('Y-m-d H:i:s');
+            
+            $team = new Team();
+            $team->team_name = $request->input('team_name');
+            $team->team_photo = $request->input('team_img');
+            $team->created_at = $current_date_time;
+            $team->updated_at = $current_date_time;
+            $team->save();
+            $team->members()->attach(request('member_ids'));
+        } catch(Exception $e) {
+            Db::rollBack();
+            return back()->withInput();
+        }
+        DB::commit();
+        return redirect('/index');
     }
 
     /**
@@ -47,7 +80,8 @@ class TeamController extends Controller
      */
     public function show($id)
     {
-        //
+        // $team = Team::find($id);
+        // return view('team.show', compact('team'));
     }
 
     /**
@@ -70,7 +104,8 @@ class TeamController extends Controller
      */
     public function update(Request $request, $id)
     {
-        //
+        // $teamMembers = Team::find($id)->members()->get();
+        // return view('team.create', compact('teamMembers'));
     }
 
     /**

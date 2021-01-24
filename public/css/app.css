@@ -175,6 +175,11 @@ a:hover, i:hover {
     text-shadow: 1px 2px 3px #fff;
   }
 }
+@media screen and (max-width: 560px) {
+  .header .header__inner__logo a {
+    font-size: 24px;
+  }
+}
 .contents {
   display: flex;
   margin: 0 auto;
@@ -199,6 +204,7 @@ a:hover, i:hover {
 }
 .contents .side-content__bar__groups__group .group-info {
   display: flex;
+  justify-content: space-evenly;
   height: 60px;
 }
 .contents .side-content__bar__groups__group .group-info__group-img {
@@ -618,6 +624,31 @@ a:hover, i:hover {
   width: 100%;
   background-color: #666;
   color: #fff;
+}
+.contents .main-content__code-page table .add-code-list td {
+  padding: 8px;
+  line-height: 1;
+  letter-spacing: 0em;
+  font-size: 16px;
+}
+.contents .main-content__code-page table .add-code-list td p {
+  line-height: 1;
+  letter-spacing: 0em;
+  font-size: 14px;
+}
+.contents .main-content__code-page table .add-code-list td a {
+  -webkit-text-decoration: underline #fff;
+          text-decoration: underline #fff;
+}
+.contents .main-content__code-page table .add-code-list td pre {
+  line-height: 1;
+}
+.contents .main-content__code-page table .add-code-list td pre code {
+  line-height: 1;
+  letter-spacing: 0em;
+  font-size: 14px;
+  color: #fff;
+  font-weight: bold;
 }
 
 @media screen and (max-width: 1140px) {

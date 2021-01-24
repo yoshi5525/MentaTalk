@@ -1,7 +1,7 @@
 $(function() {
-  var menuIcon = $('.fa-ellipsis-h');
-  var failIcon = $('.fa-times');
-  var menuList = $('.header__inner__menus__nav-lists');
+  const menuIcon = $('.fa-ellipsis-h');
+  const failIcon = $('.fa-times');
+  const menuList = $('.header__inner__menus__nav-lists');
 
   menuIcon.on('click', function() {
     menuList.toggleClass('is-active');
