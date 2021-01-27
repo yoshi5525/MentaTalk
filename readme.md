@@ -4,7 +4,7 @@
 ![チーム作成動画](https://user-images.githubusercontent.com/63286009/105941729-6971d100-60a1-11eb-96f3-9e0ff56709d7.gif)
 
 #### 2.チームチャット
-![チームチャット動画](https://user-images.githubusercontent.com/63286009/105940600-07b06780-609f-11eb-99a7-3d07c95b10ae.gif)
+![チームチャット動画](https://user-images.githubusercontent.com/63286009/105942376-7511c780-60a2-11eb-8462-a09ef6586e27.gif)
 
 #### 3.コード自動保存
 ![コード自動保存動画](https://user-images.githubusercontent.com/63286009/105942294-47c51980-60a2-11eb-9d3a-d7e053cc83bf.gif)
