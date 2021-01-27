@@ -1,7 +1,6 @@
-@extends('layouts.app')
-@extends('layouts.header')
-
-@section('member')
+@extends('layouts.layout')
+@extends('header')
+@section('content')
     <main class="main">
         <div class="main__main-inner">
             <div class="main__main-inner__form">
@@ -10,7 +9,7 @@
                     <p><label>ユーザーアイコン画像
                         <input type="file" name="img" id="icon-img"><i class="fas fa-image"></i></label></p>
                     <div id="form-preview-icon">
-                        <img src="images/no-image.png" id="preview-icon-img">
+                        <img src="../images/no-image.png" id="preview-icon-img">
                     </div>
                     <p><label>ユーザー名<span class="required">必須</span>
                         <input type="text" name="name"></label></p>

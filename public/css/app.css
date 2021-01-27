@@ -420,6 +420,9 @@ a:hover, i:hover {
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons {
   display: flex;
 }
+.contents .main-content__main-bar__form__message-form .talk-form__form-icons label {
+  order: 0;
+}
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons input[type=button],
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons input[type=file],
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons input[type=submit],
@@ -428,6 +431,7 @@ a:hover, i:hover {
 }
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons .text-count {
   display: none;
+  order: 1;
 }
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons #message-photo, .contents .main-content__main-bar__form__message-form .talk-form__form-icons #message-tag {
   position: relative;
@@ -458,11 +462,16 @@ a:hover, i:hover {
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons label i {
   font-size: 26px;
 }
+.contents .main-content__main-bar__form__message-form .talk-form #save-message-close {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+}
 .contents .main-content__main-bar__form__message-form .save-message {
   display: none;
   position: absolute;
   bottom: 100%;
-  right: 15%;
+  left: 5%;
   padding: 16px;
   border-radius: 8px;
   background: #333;

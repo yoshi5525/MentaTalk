@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Member;
+use App\Models\Message;
+use App\Models\Tech;
+use Exception;
 
 class MemberController extends Controller
 {
@@ -34,7 +37,7 @@ class MemberController extends Controller
      */
     public function create()
     {
-        //
+        return view('member.create');
     }
 
     /**
@@ -45,7 +48,72 @@ class MemberController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        if ($request->ajax()) {
+            $techSaved = false;
+            $teamId = $request->input('team_id');
+            DB::beginTransaction();
+            try {
+                $message = new Message();
+                $current_date_time = date('Y-m-d H:i:s');
+                $message->member_id = $request->input('member_id');
+                $message->team_id = $request->input('team_id');
+                $message->message = $request->input('message');
+                $message->registered_at = $current_date_time;
+                $message->created_at = $current_date_time;
+                $message->updated_at = $current_date_time;
+                $message->save();
+                if ($request->input('language_id') > 0) {
+                    $tech = new Tech();
+                    $tech->member_id = $request->input('member_id');
+                    $tech->team_id = $request->input('team_id');
+                    $tech->language_id = $request->input('language_id');
+                    if ($request->input('techKey') === 'code') {
+                        $tech->code = $request->input('tech');
+                    } else {
+                        $tech->code = null;
+                    } 
+                    if ($request->input('techKey') === 'link') {
+                        $tech->link = $request->input('tech');
+                    } else {
+                        $tech->link = null;
+                    }
+                    if ($request->input('techKey') === 'command') {
+                        $commandStr1 = $request->input('tech');
+                        $commandStr2 = substr($commandStr1, 0, -1);
+                        $commandStr3 = substr($commandStr2, 1);
+                        $tech->command = $commandStr3;
+                    } else {
+                        $tech->command = null;
+                    }
+                    $tech->created_at = $current_date_time;
+                    $tech->updated_at = $current_date_time;
+                    $techSaved = true;
+                    $tech->save();
+                }
+            } catch (Exception $e) {
+                DB::rollBack();
+                return back()->withInput();
+            }
+            DB::commit();
+            $lastMessageId = DB::table('messages')->where('team_id', $teamId)->max('id');
+            $messageQuery = DB::table('messages');
+            $newMessages[] = $messageQuery->join('members', 'messages.member_id', '=', 'members.id')
+                                            ->select('messages.*', 'members.name', 'members.member_photo')
+                                            ->where('messages.team_id', $teamId)->where('messages.id', $lastMessageId)->get();
+            // $newMessages[] = $messageQuery->join('members', 'messages.member_id', '=', 'members.id')
+            //                     ->where('messages.team_id', $teamId)->where('messages.id', $lastMessageId)->get();
+            if ($techSaved) {
+                $lastTechId = DB::table('techs')->where('team_id', $teamId)->max('id');
+                $techQuery = DB::table('techs');
+                $newMessages[] = $techQuery->join('members', 'techs.member_id', '=', 'members.id')
+                                            ->select('techs.*', 'members.name', 'members.member_photo')
+                                            ->where('techs.team_id', $teamId)->where('techs.id', $lastTechId)->get();
+                // $newMessages[] = $techQuery->join('members', 'techs.member_id', '=', 'members.id')
+                //                     ->where('techs.team_id', $teamId)->where('techs.id', $lastTechId)->get();
+                return response()->json($newMessages);
+            }
+            return response()->json($newMessages);
+        }
     }
 
     /**
