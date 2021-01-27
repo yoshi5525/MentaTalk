@@ -1,15 +1,18 @@
 # **Menta Talk** #README
 ## デモンストレーション
-#### 1.チーム作成 (右側のスマホ画面は関係ないです...)
+#### 1.チーム作成
 ![チーム作成動画](https://user-images.githubusercontent.com/63286009/105941729-6971d100-60a1-11eb-96f3-9e0ff56709d7.gif)
 
 #### 2.チームチャット
 ![チームチャット動画](https://user-images.githubusercontent.com/63286009/105942376-7511c780-60a2-11eb-8462-a09ef6586e27.gif)
 
-#### 3.コード自動保存
-![コード自動保存動画]()
+#### 3.入力中ステータス表示
+![入力中ステータス表示動画](https://user-images.githubusercontent.com/63286009/106068999-fb7ee580-6144-11eb-9218-6b1296d3885d.gif)
 
-#### 4.チャットボット
+#### 4.コード自動保存 (右側のスマホ画面は関係ないです...)
+![コード自動保存動画](https://user-images.githubusercontent.com/63286009/106069333-ae4f4380-6145-11eb-9234-c8f21bfe76b1.gif)
+
+#### 5.チャットボット
 ![チャットボット動画](https://user-images.githubusercontent.com/63286009/105942126-f9177f80-60a1-11eb-8da4-1ad851311b47.gif)
 <br><br>
 
