@@ -285,6 +285,10 @@
             &__form-icons {
               display: flex;
 
+              label {
+                order: 0;
+              }
+
               input[type="button"],
               input[type="file"],
               input[type="submit"],
@@ -294,6 +298,7 @@
 
               .text-count {
                 display: none;
+                order: 1;
               }
 
               #message-photo, #message-tag {
@@ -331,13 +336,18 @@
                 }
               }
             }
+            #save-message-close {
+              position: absolute;
+              top: 5px;
+              right: 5px;
+            }
           }
 
           .save-message {
             display: none;
             position: absolute;
             bottom: 100%;
-            right: 15%;
+            left: 5%;
             padding: 16px;
             -webkit-border-radius: 8px;
             -moz-border-radius: 8px;  

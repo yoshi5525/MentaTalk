@@ -27,9 +27,25 @@ class TeamController extends Controller
         // 所属しているチームのメンバー一覧を取得
         $teamMembers = Team::with('members')->find($teamIds);
         // 所属しているチームのメッセージ一覧を取得
-        $messages = Team::with('messages')->find($teamIds);
+        $messages = [];
+        for ($i = 0; $i < count($teamIds); $i++) {
+            $messages[] = DB::table('messages')
+                        ->join('members', 'messages.member_id', '=', 'members.id')
+                        ->select('messages.*', 'members.name', 'members.member_photo')
+                        ->where('messages.team_id', $teamIds[$i])->orderBy('messages.id', 'asc')->get();
+            // $messages[] = DB::table('messages')->join('members', 'messages.member_id', '=', 'members.id')
+            //             ->where('messages.team_id', $teamIds[$i])->orderBy('messages.id', 'asc')->get();
+        }
         // 所属しているチームのコード一覧を取得
-        $techs = Team::with('techs')->find($teamIds);
+        $techs = [];
+        for ($i = 0; $i < count($teamIds); $i++) {
+            $techs[] = DB::table('techs')
+                        ->join('members', 'techs.member_id', '=', 'members.id')
+                        ->select('techs.*', 'members.name', 'members.member_photo')
+                        ->where('techs.team_id', $teamIds[$i])->orderBy('techs.id', 'asc')->get();
+            // $techs[] = DB::table('techs')->join('members', 'techs.member_id', '=', 'members.id')
+            //         ->where('techs.team_id', $teamIds[$i])->orderBy('techs.id', 'asc')->get();
+        }
 
         return view('team.index', compact('member', 'teamMembers', 'messages', 'techs'));
     }
@@ -56,7 +72,7 @@ class TeamController extends Controller
         try {
             // 現在時刻の取得
             $current_date_time = date('Y-m-d H:i:s');
-            
+
             $team = new Team();
             $team->team_name = $request->input('team_name');
             $team->team_photo = $request->input('team_img');
@@ -64,8 +80,11 @@ class TeamController extends Controller
             $team->updated_at = $current_date_time;
             $team->save();
             $team->members()->attach(request('member_ids'));
+            $team->members()->admin_member_id = null;
+            $team->members()->created_at = $current_date_time;
+            $team->members()->created_at = $current_date_time;
         } catch(Exception $e) {
-            Db::rollBack();
+            DB::rollBack();
             return back()->withInput();
         }
         DB::commit();

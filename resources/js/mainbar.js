@@ -44,26 +44,51 @@ $(function() {
 
 
   // DBよりメンバー情報を取得できたら、各ページにデータの反映を行う
+  let openArrayNumber = 0;
   let openTeamId = 0;
+  let memberTeamsLength;
+  let talkContentCount = 0;
   if (typeof member !== 'undefined') {
+    memberTeamsLength = member.teams.length;
     talkBtnList.on('click', function () {
       formReset();
       const openBtnId = $(this).data('btn-id');
+      openArrayNumber = $(this).data('array-number');
       openTeamId = $(this).data('team-id');
       const clickBtnName = $(this).text();
-      for(let i = 0; i < member.teams.length; i++) {
-        if (typeof messages !== 'undefined' && messages[i].id === openTeamId && clickBtnName.match(/Talk/)) {
-          displayToggle(openBtnId);
-          const messageLength = messages[i].messages.length;
-          for (let j = 0; j < messageLength; j++) {
-            talkBox.append(buildTalkMessage(messages[i].messages[j]));
+      talkBox.empty();
+      botTalkRoom.empty();
+      codeTable.empty();
+      for(let i = 0; i < memberTeamsLength; i++) {
+        if (typeof messages !== 'undefined' && clickBtnName.match(/Talk/)) {
+          if (messages[i][0] && messages[i][0].team_id === openTeamId) {
+            $('#current-team-id').val(openTeamId);
+            displayToggle(openBtnId);
+            const messageLength = messages[i].length;
+            for (let j = 0; j < messageLength; j++) {
+              talkBox.append(buildTalkMessage(messages[i][j]));
+            }
+            talkContentCount = $('.main-content__main-bar__talk-box__content').length;
+          } else {
+            if ($(window).width() < 1140) {
+              $('#current-team-id').val(openTeamId);
+              displayToggle(openBtnId);
+            } else {
+              $('#current-team-id').val(openTeamId);
+            }
           }
-        } else if (typeof techs !== 'undefined' && techs[i].id === openTeamId && clickBtnName.match(/Bot/)) {
-          displayToggle(openBtnId);
-          loadMessage(0);
-        } else if (typeof techs !== 'undefined' && techs[i].id === openTeamId && clickBtnName.match(/Code/)) {
-          displayToggle(openBtnId);
-          codeTable.append(buildCodeHTML());
+        } else if (typeof techs !== 'undefined' && clickBtnName.match(/Bot/)) {
+          talkContentCount = 0;
+          if (techs[i][0] && techs[i][0].team_id === openTeamId) {
+            displayToggle(openBtnId);
+            loadMessage(0);
+          }
+        } else if (typeof techs !== 'undefined' && clickBtnName.match(/Code/)) {
+          talkContentCount = 0;
+          if (techs[i][0] && techs[i][0].team_id === openTeamId) {
+            displayToggle(openBtnId);
+            codeTable.append(buildCodeHTML());
+          }
         }
       }
     });
@@ -79,6 +104,7 @@ $(function() {
   // 戻るボタン押下時、トークルームのリセット
   backBtn.on('click', function() {
     formReset();
+    talkContentCount = 0;
     backBtn.css("display", "none");
     sideContent.removeClass('toggle');
     mainContent.addClass('toggle');
@@ -91,6 +117,7 @@ $(function() {
     talkBox.empty();
     talkBox.empty();
     botTalkRoom.empty();
+    codeTable.empty();
     $('.add-code-list').empty();
   });
 
@@ -116,15 +143,45 @@ $(function() {
 
 
   // トークルームの投稿フォーム文字数カウントとフォームテキストのチェック
+  let ajaxTechKey = '';
+  let ajaxTechValue = '';
+  talkSendBtn.prop('disabled', true);
   $('#form-text').on('input', function() {
     let textCount = $(this).val().length;
     messageCount(textCount);
-    if (techTextCheck($(this).val())) {
+    // 文字が入力されていたら送信ボタンを押せるようにする
+    if ($('#message-count').text() < 1000) {
+      talkSendBtn.prop('disabled', false);
+    } else {
+      talkSendBtn.prop('disabled', true);
+    }
+    // タグが選択せれているかチェックし、メッセージを表示
+    if (tagBtn.val() == 0 && techTextCheck($(this).val()) != false) {
       $(this).next('p').show();
+    }
+    // 入力文字にプログラミングに関する文字があるかチェック
+    if (techTextCheck($(this).val()) === 'code') {
+      ajaxTechKey = 'code';
+      // let replaceText = $('#form-text').val().replace(/\r|\n|\r\n/g, '\/n').replace(/\s\s/g, '\t');
+      // let inputCode = replaceText.match(/(<[\w\d ]+>[\s\S]+<\/[\w\d ]{1,100}>|{[\s\S]+}[\s\S]+{[\s\S]+}|{[\s\S]*{[\s\S]*}[\s\S]*}|([\s\S]*{[\s\S]+}[\s\S]*))/);
+      let inputCode = $('#form-text').val().match(/(<[\w\d ]+>[\s\S]+<\/[\w\d ]{1,100}>|<\?[\s\S]+\?>|{[\s\S]+}[\s\S]+{[\s\S]+}|{[\s\S]*{[\s\S]*}[\s\S]*}|([\s\S]*{[\s\S]+}[\s\S]*))/);
+      ajaxTechValue = inputCode[0];
+    } else if (techTextCheck($(this).val()) === 'link') {
+      ajaxTechKey = 'link';
+      let inputLink = $('#form-text').val().match(/(ftp|https?):\/\/\S+\.\S+/);
+      ajaxTechValue = inputLink[0];
+    } else if (techTextCheck($(this).val()) === 'command') {
+      ajaxTechKey = 'command';
+      let inputCommand = $('#form-text').val().match(/`.+`/);
+      ajaxTechValue = inputCommand[0];
     } else {
       $(this).next('p').hide();
+      ajaxTechKey = '';
+      ajaxTechValue = '';
     }
   });
+
+
   // テキストエリア操作時の文字数カウント表示・非表示
   $('#form-text').focusin(function() {
     $('.text-count').css('display', 'block');
@@ -134,36 +191,142 @@ $(function() {
   });
 
 
-  // チームトークルームのメッセージデータの取得と表示(画面一番上にスクロールすることで発火)
-  mainContent.scroll(function() {
-    let topDistance = mainContent.scrollTop();
-    if (topDistance === 0 && mainBar.css('display') === 'block' && mainContent.css('position') !== 'absolute') {
-      let oldMessageId = (messageContent.first().find('input')).val();
-      reloadMessages(oldMessageId);
-    }
+  // タグメッセージを閉じるボタンの挙動
+  $('#save-message-close').on('click', function() {
+    $('.save-message').css('opacity', '0');
   });
 
 
   // トークルームformの送信ボタンクリック時、データと投稿と表示
   talkSendBtn.on('click', function(e) {
     e.preventDefault();
-    $.ajax({
-      url: "",
-      type: "POST",
-      data: "",
-      dataType: 'json'
-    })
-    .done(function(message) {
-      const html = buildTalkMessage(message);
-      talkBox.append(html);
-      $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
-      formReset();
-      talkSendBtn.prop('disabled', false);
-    })
-    .fail(function() {
-      alert('メッセージを送信できませんでした')
-    });
+    const currentMemberId = $('#current-member-id').val();
+    const currentTeamId = $('#current-team-id').val();
+    const messageData = $('#form-text').val();
+    const selectLanguageId =$('#tag-btn').val();
+    if (tagBtn.val() !== 0 && ajaxTechKey !== '' && ajaxTechValue !== '') {
+      $('#tech-code-text').attr('name', ajaxTechKey);
+      $('#tech-code-text').attr('value', ajaxTechValue);
+      $.ajax({
+        headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        url: "member/store",
+        type: "POST",
+        data: {
+                'member_id': currentMemberId,
+                'team_id': currentTeamId,
+                'message': messageData,
+                'language_id': selectLanguageId,
+                'tech': ajaxTechValue,
+                'techKey': ajaxTechKey,
+              },
+        dataType: 'json',
+      })
+      .done(function(newMessages) {
+        let messageSaveFlag = false;
+        let codeSaveFlag = false;
+        // 新しく投稿したデータを、messages配列に追加する
+        for (let i = 0; i < messages.length; i++) {
+          if (messages[i][0] && messages[i][0].team_id === openTeamId && messageSaveFlag !== true) {
+            messages[i].push(newMessages[0][0]);
+            messageSaveFlag = true;
+          }
+          if (techs[i][0] && techs[i][0].team_id === openTeamId && codeSaveFlag !== true) {
+            if (newMessages.length === 1) {
+              techs[i].push(newMessages[0]);
+              codeSaveFlag = true;
+            } else if (newMessages.length === 2) {
+              techs[i].push(newMessages[1][0]);
+              codeSaveFlag = true;
+            }
+          }
+        }
+        if (messageSaveFlag === false) {
+          messages.push(newMessages[0]);
+          memberTeamsLength++;
+        }
+        if (codeSaveFlag === false) {
+          techs.push(newMessages[1]);
+        }
+        const html = buildTalkMessage(newMessages[0][0]);
+        talkBox.append(html);
+        $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
+        $('#message-count').text(1000);
+        formReset();
+        $('.save-message').hide();
+        $('.save-message').css('opacity', '0');
+        talkSendBtn.prop('disabled', false);
+      })
+      .fail(function() {
+        alert('メッセージを送信できませんでした')
+      });
+    } else {
+      $.ajax({
+        headers: {
+          'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        },
+        url: "member/store",
+        type: "POST",
+        data: {
+                'member_id': currentMemberId,
+                'team_id': currentTeamId,
+                'message': messageData,
+                'language_id': selectLanguageId,
+                // 'tech': '',
+              },
+        dataType: 'json',
+      })
+      .done(function(newMessages) {
+        let messageSaveFlag = false;
+        let codeSaveFlag = false;
+        // 新しく投稿したデータを、messages配列に追加する
+        for (let i = 0; i < messages.length; i++) {
+          if (messages[i][0] && messages[i][0].team_id === openTeamId && messageSaveFlag !== true) {
+            messages[i].push(newMessages[0][0]);
+            messageSaveFlag = true;
+          }
+        }
+        if (messageSaveFlag === false) {
+          messages.push(newMessages[0]);
+          memberTeamsLength++;
+        }
+        const html = buildTalkMessage(newMessages[0][0]);
+        talkBox.append(html);
+        $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
+        $('#message-count').text(1000);
+        formReset();
+        $('.save-message').hide();
+        $('.save-message').css('opacity', '0');
+        talkSendBtn.prop('disabled', false);
+      })
+      .fail(function() {
+        alert('メッセージを送信できませんでした')
+      });
+    }
   });
+
+
+  // 定期的に新しいメッセージが投稿されていないかチェックし、ビューに追加する
+  setInterval(function(){
+    if (talkContentCount > 0) {
+      let lastMessageId = $('.main-content__main-bar__talk-box__content:last').data("message-id");
+      if (lastMessageId > 0) {
+        reloadMessages(lastMessageId, 'new message');
+        lastMessageId = 0;
+      }
+    }
+  },3000);
+
+
+  // チームトークルームのメッセージデータの取得と表示(画面一番上にスクロールすることで発火)
+  // mainContent.scroll(function() {
+  //   let topDistance = mainContent.scrollTop();
+  //   if (topDistance === 0 && mainBar.css('display') === 'block' && mainContent.css('position') !== 'absolute') {
+  //     let oldMessageId = (messageContent.first().find('input')).val();
+  //     reloadMessages(oldMessageId, 'add message');
+  //   }
+  // });
 
 
   // bot返答メッセージクリック時(回答する答えの構築)
@@ -258,6 +421,7 @@ $(function() {
         mainContent.css("height", mainContentHeightCheck());
         talkBox.empty();
         botTalkRoom.empty();
+        codeTable.empty();
         $('.add-code-list').empty();
         $('.main-content').scrollTop(mainBar[0].scrollHeight);
       } else if (openedBtn === 'bot') {
@@ -269,6 +433,7 @@ $(function() {
         mainContent.css("height", mainContentHeightCheck());
         talkBox.empty();
         botTalkRoom.empty();
+        codeTable.empty();
         $('.add-code-list').empty();
       } else if (openedBtn === 'code') {
         mainBar.css("display", "none");
@@ -279,6 +444,7 @@ $(function() {
         mainContent.css("height", mainContentHeightCheck());
         talkBox.empty();
         botTalkRoom.empty();
+        codeTable.empty();
         $('.add-code-list').empty();
       }
     }
@@ -292,7 +458,7 @@ $(function() {
         textCountDel();
         mainContent.css("height", mainContentHeightCheck());
         $('.main-content').scrollTop(mainBar[0].scrollHeight);
-        talkBox.empty();
+        // talkBox.empty();
         botTalkRoom.empty();
         $('.add-code-list').empty();
       } else if ((openedBtn === 'bot')) {
@@ -335,42 +501,90 @@ $(function() {
 
 
   // 新規メッセージの取得と取得時のローダー、メッセージの表示
-  function reloadMessages(oldMessageId) {
-    $('.loader').css('display', 'block');
-    $.ajax({
-      url: "",
-      type: "GET",
-      data: "",
-      dataType: 'json'
-    })
-    .done(function(message) {
-      setTimeout(function() {
-        $('.loader').css('display', 'none');
-      }, 3000);
-      setTimeout(function() {
-        const html = buildTalkMessage(message);
-        talkBox.prepend(html);
-        alertMessage.text('メッセージ読み込みに成功しました');
-        alertMessage.css("display", "block");
-      }, 3000);
-      setTimeout(function() {
-        alertMessage.css('display', 'none');
-        alertMessage.text('');
-      }, 5000);
-    })
-    .fail(function() {
-      setTimeout(function() {
-        $('.loader').css('display', 'none');
-      }, 3000);
-      setTimeout(function() {
-        alertMessage.text('メッセージ読み込みに失敗しました');
-        alertMessage.css("display", "block");
-      }, 3000);
-      setTimeout(function() {
-        alertMessage.css('display', 'none');
-        alertMessage.text('');
-      }, 5000);
-    });
+  function reloadMessages(messageId, str) {
+    if (str === 'new message') {
+      $.ajax({
+        type: 'GET',
+        url: 'message/index',
+        data: { 'new_message_id': messageId },
+        dataType: 'json',
+      })
+      .done(function(newMessages) {
+        if (newMessages.length > 0) {
+          let newMessageFlag = true;
+          for (let i = 0; i < newMessages.length; i++) {
+            const html = buildTalkMessage(newMessages[i]);
+            talkBox.append(html);
+            messages[openArrayNumber].push(newMessages[i]);
+            if (newMessageFlag && newMessages[i].member_id === member.id) {
+              newMessageFlag = false;
+            }
+          }
+          $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
+          if (!newMessageFlag) {
+            // setTimeout(function() {
+            alertMessage.text('新しいメッセージを取得しました');
+            alertMessage.css("display", "block");
+            // }, 3000);
+            setTimeout(function() {
+              alertMessage.css('display', 'none');
+              alertMessage.text('');
+            }, 5000);
+          }
+        }
+      })
+      .fail(function() {
+        // setTimeout(function() {
+          alertMessage.text('新しいメッセージをありません');
+          alertMessage.css("display", "block");
+        // }, 3000);
+        setTimeout(function() {
+          alertMessage.css('display', 'none');
+          alertMessage.text('');
+        }, 5000);
+      });
+    }
+    // else if (str === 'add message')
+    //   $('.loader').css('display', 'block');
+    //   $.ajax({
+    //     type: 'GET',
+    //     url: 'message/index',
+    //     data: '{ 'old_message_id: messageId }',
+    //     dataType: 'json'
+    //   })
+    //   .done(function(newMessages) {
+    //    if (newMessages.length > 0) {
+    //       setTimeout(function() {
+    //         $('.loader').css('display', 'none');
+    //       }, 3000);
+    //       setTimeout(function() {
+    //         for (let i = 0; i < newMessages.length; i++) {
+    //           const html = buildTalkMessage(newMessages[i]);
+    //           talkBox.prepend(html);
+    //         }
+    //         alertMessage.text('メッセージ読み込みに成功しました');
+    //         alertMessage.css("display", "block");
+    //       }, 3000);
+    //       setTimeout(function() {
+    //         alertMessage.css('display', 'none');
+    //         alertMessage.text('');
+    //       }, 5000);
+    //     }
+    //   })
+    //   .fail(function() {
+    //     setTimeout(function() {
+    //       $('.loader').css('display', 'none');
+    //     }, 3000);
+    //     setTimeout(function() {
+    //       alertMessage.text('メッセージ読み込みに失敗しました');
+    //       alertMessage.css("display", "block");
+    //     }, 3000);
+    //     setTimeout(function() {
+    //       alertMessage.css('display', 'none');
+    //       alertMessage.text('');
+    //     }, 5000);
+    //   });
+    // }
   };
 
 
@@ -378,7 +592,7 @@ $(function() {
   function buildTalkMessage(message) {
     if (message.member_photo) {
       const html =
-        `<div class="main-content__main-bar__talk-box__content">
+        `<div class="main-content__main-bar__talk-box__content" data-message-id="${message.id}">
             <div class="main-content__main-bar__talk-box__content__info">
                 <div class="left-info">
                     <div class="left-info__img">
@@ -389,19 +603,19 @@ $(function() {
                     </div>
                 </div>
                 <div class="right-info">
-                    <p class="right-info__registered-date">${message.pivot.registered_at}</p>
+                    <p class="right-info__registered-date">${message.registered_at}</p>
                 </div>
             </div>
             <div class="main-content__main-bar__talk-box__content__message">
                 <div class="message-text">
-                    ${message.pivot.message}
+                    <pre>${changeCode(message.message)}</pre>
                 </div>
             </div>
         </div>`
       return html;
     } else {
       const html =
-        `<div class="main-content__main-bar__talk-box__content">
+        `<div class="main-content__main-bar__talk-box__content" data-message-id="${message.id}">
             <div class="main-content__main-bar__talk-box__content__info">
                 <div class="left-info">
                     <div class="left-info__img">
@@ -412,12 +626,12 @@ $(function() {
                     </div>
                 </div>
                 <div class="right-info">
-                    <p class="right-info__registered-date">${message.pivot.registered_at}</p>
+                    <p class="right-info__registered-date">${message.registered_at}</p>
                 </div>
             </div>
             <div class="main-content__main-bar__talk-box__content__message">
                 <div class="message-text">
-                    ${message.pivot.message}
+                    <pre>${changeCode(message.message)}</pre>
                 </div>
             </div>
         </div>`
@@ -427,16 +641,29 @@ $(function() {
 
 
   // form入力テキストチェック(code,urlが含まれているかを確認)
+  let codeCheckFlag;
+  let linkCheckFlag;
+  let commandCheckFlag;
   function techTextCheck(text) {
-    let urlResult = /(ftp|https?):\/\/\S+\.\S+/.test(text);
-    let codeResult = /(<[\w\d ]+>.+<\/[\w\d ]{1,100}>|{.+}.+{.+}|{.*{.*}.*}|(.*{.+}.*))/.test(text);
-    let techSaveFlag = false;
-    if (urlResult || codeResult) {
-      techSaveFlag = true;
-    } else {
-      techSaveFlag = false;
+    const codeCheckStr = /(<[\w\d ]+>[\s\S]+<\/[\w\d ]{1,100}>|<\?[\s\S]+\?>|{[\s\S]+}[\s\S]+{[\s\S]+}|{[\s\S]*{[\s\S]*}[\s\S]*}|([\s\S]*{[\s\S]+}[\s\S]*))/;
+    const linkCheckStr = /(ftp|https?):\/\/\S+\.\S+/;
+    const commandCheckStr = /`.+`/;
+    codeCheckFlag = '';
+    linkCheckFlag = '';
+    commandCheckFlag = '';
+    if (codeCheckStr.test(text)) {
+      codeCheckFlag = 'code';
+      return codeCheckFlag;
     }
-    return techSaveFlag;
+    else if (linkCheckStr.test(text)) {
+      linkCheckFlag = 'link';
+      return linkCheckFlag;
+    }
+    else if (commandCheckStr.test(text)) {
+      commandCheckFlag = 'command';
+      return commandCheckFlag;
+    }
+    return false;
   }
 
 
@@ -462,7 +689,7 @@ $(function() {
   function loadMessage(resNumber, howCheck) {
     $('.res-btn').prop("disabled", true);
     const randomStart = Math.floor((Math.random() * 6 ) + 5) * 100; // 「500 〜 1000」の範囲で乱数(表示所要時間に使用)
-    const randomEnd = Math.floor((Math.random() * 3) + 1) * 1000; // 「1000 〜 3000」の範囲で乱数(表示所要時間に使用)
+    const randomEnd = Math.floor((Math.random() * 2) + 2) * 1000; // 「2000 〜 3000」の範囲で乱数(表示所要時間に使用)
     setTimeout(function() {
       botTalkRoom.append(buildBotMessage(resNumber, howCheck));
       $('.main-content').scrollTop($('.main-content__bot-page')[0].scrollHeight);
@@ -571,35 +798,37 @@ $(function() {
   // クリックされたボタンを基に、回答をDBより取得する
   function searchTechAnswer(howCheck, languageId) {
     if (typeof techs !== 'undefined') {
-      let messages = [];
-      if (howCheck === 'code') {
-        for (let i = 0; i < techs[openTeamId - 1].techs.length; i++) {
-          if (techs[openTeamId - 1].techs[i].pivot.code !== null && techs[openTeamId - 1].techs[i].pivot.language_id === languageId) {
-            const message = changeCode(techs[openTeamId - 1].techs[i].pivot.code);
-            messages.push(changePreTag(message));
+      let returnMessages = [];
+      for (let h = 0; h < techs.length; h++) {
+        if (howCheck === 'code' && techs[h][0] && techs[h][0].team_id === openTeamId) {
+          for (let i = 0; i < techs[h].length; i++) {
+            if (techs[h][i].code !== null && techs[h][i].language_id === languageId) {
+              const message = changeCode(techs[h][i].code);
+              returnMessages.push(changePreTag(message));
+            }
           }
-        }
-      } else if (howCheck === 'command') {
-        for (let i = 0; i < techs[openTeamId - 1].techs.length; i++) {
-          if (techs[openTeamId - 1].techs[i].pivot.command !== null && techs[openTeamId - 1].techs[i].pivot.language_id === languageId) {
-            const message = changeCode(techs[openTeamId - 1].techs[i].pivot.command);
-            messages.push(changePreTag(message));
+        } else if (howCheck === 'command' && techs[h][0] && techs[h][0].team_id === openTeamId) {
+          for (let i = 0; i < techs[h].length; i++) {
+            if (techs[h][i].command !== null && techs[h][i].language_id === languageId) {
+              const message = changeCode(techs[h][i].command);
+              returnMessages.push(changePreTag(message));
+            }
           }
-        }
-      } else if (howCheck === 'link') {
-        for (let i = 0; i < techs[openTeamId - 1].techs.length; i++) {
-          if (techs[openTeamId - 1].techs[i].pivot.link !== null && techs[openTeamId - 1].techs[i].pivot.language_id === languageId) {
-            const message = changeCode(techs[openTeamId - 1].techs[i].pivot.link);
-            messages.push(changeATag(message));
+        } else if (howCheck === 'link' && techs[h][0] && techs[h][0].team_id === openTeamId) {
+          for (let i = 0; i < techs[h].length; i++) {
+            if (techs[h][i].link !== null && techs[h][i].language_id === languageId) {
+              const message = changeCode(techs[h][i].link);
+              returnMessages.push(changeATag(message));
+            }
           }
         }
       }
       // 該当するデータが無かったときの処理
-      if (messages.length === 0) {
+      if (returnMessages.length === 0) {
         const message = changeCode("該当するデータが見つかりませんでした");
-        messages.push(changePreTag(message));
+        returnMessages.push(changePreTag(message));
       }
-      return messages;
+      return returnMessages;
     }
   }
 
@@ -737,42 +966,45 @@ $(function() {
   function buildCodeHTML() {
     if (typeof techs !== 'undefined') {
       let trValues;
-      for (let i = 0; i < techs[openTeamId - 1].techs.length; i++) {
-        if (techs[openTeamId - 1].techs[i].pivot.code !== null) {
-          const code = changeCode(techs[openTeamId - 1].techs[i].pivot.code);
-          const preCode = changePreTag(code);
-          const languageName = idChangeLanguageName(techs[openTeamId - 1].techs[i].pivot.language_id);
-          const html =
-            `<tr class="add-code-list">
-              <td>${techs[openTeamId - 1].techs[i].name}</td>
-              <td>${languageName}</td>
-              <td>${preCode}</td>
-            </tr>`
-          trValues += html;
-        }
-        if (techs[openTeamId - 1].techs[i].pivot.command !== null) {
-          const code = changeCode(techs[openTeamId - 1].techs[i].pivot.command);
-          const pCode = changePTag(code);
-          const languageName = idChangeLanguageName(techs[openTeamId - 1].techs[i].pivot.language_id);
-          const html =
-            `<tr class="add-code-list">
-              <td>${techs[openTeamId - 1].techs[i].name}</td>
-              <td>${languageName}</td>
-              <td>${pCode}</td>
-            </tr>`
-          trValues += html;
-        }
-        if (techs[openTeamId - 1].techs[i].pivot.link !== null) {
-          const code = changeCode(techs[openTeamId - 1].techs[i].pivot.link);
-          const aCode = changeATag(code);
-          const languageName = idChangeLanguageName(techs[openTeamId - 1].techs[i].pivot.language_id);
-          const html =
-            `<tr class="add-code-list">
-              <td>${techs[openTeamId - 1].techs[i].name}</td>
-              <td>${languageName}</td>
-              <td>${aCode}</td>
-            </tr>`
-          trValues += html;
+      for (let h = 0; h < techs.length; h++) {
+        if (techs[h][0] && techs[h][0].team_id === openTeamId) {
+          for (let i = 0; i < techs[h].length; i++) {
+            if (techs[h][i].code !== null) {
+              console.log(techs[h][i].code);
+              const code = changeCode(techs[h][i].code);
+              const preCode = changePreTag(code);
+              const languageName = idChangeLanguageName(techs[h][i].language_id);
+              const html =
+                `<tr class="add-code-list">
+                  <td>${techs[h][i].name}</td>
+                  <td>${languageName + ' (コード)'}</td>
+                  <td>${preCode}</td>
+                </tr>`
+              trValues += html;
+            } else if (techs[h][i].command !== null) {
+              const code = changeCode(techs[h][i].command);
+              const pCode = changePTag(code);
+              const languageName = idChangeLanguageName(techs[h][i].language_id);
+              const html =
+                `<tr class="add-code-list">
+                  <td>${techs[h][i].name}</td>
+                  <td>${languageName + ' (コマンド)'}</td>
+                  <td>${pCode}</td>
+                </tr>`
+              trValues += html;
+            } else if (techs[h][i].link !== null) {
+              const code = changeCode(techs[h][i].link);
+              const aCode = changeATag(code);
+              const languageName = idChangeLanguageName(techs[h][i].language_id);
+              const html =
+                `<tr class="add-code-list">
+                  <td>${techs[h][i].name}</td>
+                  <td>${languageName + ' (リンク)'}</td>
+                  <td>${aCode}</td>
+                </tr>`
+              trValues += html;
+            }
+          }
         }
       }
       return trValues;
