@@ -7,7 +7,7 @@
 ![チームチャット動画](https://user-images.githubusercontent.com/63286009/105940600-07b06780-609f-11eb-99a7-3d07c95b10ae.gif)
 
 #### 3.コード自動保存
-![コード自動保存動画](https://user-images.githubusercontent.com/63286009/105940234-2feb9680-609e-11eb-8f71-30e4108006c1.gif)
+![コード自動保存動画](https://user-images.githubusercontent.com/63286009/105941186-35e27700-60a0-11eb-9bb2-558856901e93.gif)
 
 #### 4.チャットボット
 ![チャットボット動画](https://user-images.githubusercontent.com/63286009/105940525-ddf74080-609e-11eb-83c4-08350bc48596.gif)
