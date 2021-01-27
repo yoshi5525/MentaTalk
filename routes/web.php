@@ -21,6 +21,9 @@ Route::group([], function () {
     Route::get('/index', 'TeamController@index')->name('team.index');
     Route::get('/create', 'TeamController@create')->name('team.create');
     Route::post('/store', 'TeamController@store')->name('team.store');
+    Route::get('/inputSearch', 'TeamController@inputSearch')->name('team.inputSearch');
+    Route::post('/inputSearchRegister', 'TeamController@inputSearchRegister')->name('team.inputSearchRegister');
+    Route::post('/inputSearchDelete', 'TeamController@inputSearchDelete')->name('team.inputSearchDelete');
     // Route::get('/show/{id}', 'TeamController@show')->name('team.show');
     // Route::get('/edit/{id}', 'TeamController@edit')->name('team.edit');
     // Route::post('/update{/id}', 'TeamController@update')->name('team.update');

@@ -215,8 +215,8 @@ $(function () {
   } // 画面読み込み時に、チームトーク画面の最新メッセージを表示
 
 
-  if (document.URL.match(/^http:\/\/127.0.0.1:8000$/) || document.URL.match(/^http:\/\/127.0.0.1:8000\/index$/)) {
-    $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
+  if ($(window).width() >= 1140 && document.URL.match(/^http:\/\/127.0.0.1:8000/) || document.URL.match(/^http:\/\/127.0.0.1:8000\/index/)) {
+    $('.main-content__main-bar__form').addClass('toggle'); // $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
   } // コードがDBに登録されていなかったら、Botボタンがクリックできないようにする
 
 
@@ -367,12 +367,63 @@ $(function () {
       ajaxTechValue = '';
     }
   }); // テキストエリア操作時の文字数カウント表示・非表示
+  // focusすると入力中情報更新
 
+  var inputMemberId = 0;
+  var focusMemberId = 0;
+  var focusStatus = 0;
   $('#form-text').focusin(function () {
+    inputMemberId = member.id;
     $('.text-count').css('display', 'block');
-  });
+    $.ajax({
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      url: "inputSearchRegister",
+      type: "POST",
+      data: {
+        'open_member_id': inputMemberId,
+        'open_team_id': openTeamId
+      },
+      dataType: 'json'
+    }).done(function (result) {
+      focusMemberId = result[1].input_member;
+
+      if (focusMemberId !== member.id) {
+        focusStatus = result[1].input_status;
+        $('#input-member-name').text(result[0]);
+        $('.input-member').css('display', 'block');
+      }
+    }).fail(function () {
+      $('.input-member').css('display', 'none');
+      $('#input-member-name').text('');
+      focusMemberId = 0;
+      focusStatus = 0;
+    });
+  }); // focusを外すと入力情報削除
+
   $('#form-text').focusout(function () {
+    $('#input-member-name').text('');
     $('.text-count').css('display', 'none');
+    $('.input-member').css('display', 'none');
+    $.ajax({
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      url: "inputSearchDelete",
+      type: "POST",
+      data: {
+        'open_member_id': inputMemberId,
+        'open_team_id': openTeamId
+      },
+      dataType: 'json'
+    }).done(function (result) {
+      focusMemberId = 0;
+      focusStatus = 0;
+    }).fail(function () {
+      focusMemberId = 0;
+      focusStatus = 0;
+    });
   }); // タグメッセージを閉じるボタンの挙動
 
   $('#save-message-close').on('click', function () {
@@ -456,8 +507,7 @@ $(function () {
           'member_id': currentMemberId,
           'team_id': currentTeamId,
           'message': messageData,
-          'language_id': selectLanguageId // 'tech': '',
-
+          'language_id': selectLanguageId
         },
         dataType: 'json'
       }).done(function (newMessages) {
@@ -498,16 +548,35 @@ $(function () {
         reloadMessages(lastMessageId, 'new message');
         lastMessageId = 0;
       }
+    } // 他のチームメンバーが入力していないかチェック
+
+
+    if (focusStatus > 0) {
+      $.ajax({
+        type: 'GET',
+        url: 'inputSearch',
+        data: {
+          'open_team_id': openTeamId
+        },
+        dataType: 'json'
+      }).done(function (value) {
+        $('#input-member-name').text(value.name);
+        $('.input-member').css('display', 'block');
+      }).fail(function () {
+        $('#input-member-name').text('');
+        $('.input-member').css('display', 'none');
+      });
     }
-  }, 3000); // チームトークルームのメッセージデータの取得と表示(画面一番上にスクロールすることで発火)
-  // mainContent.scroll(function() {
-  //   let topDistance = mainContent.scrollTop();
-  //   if (topDistance === 0 && mainBar.css('display') === 'block' && mainContent.css('position') !== 'absolute') {
-  //     let oldMessageId = (messageContent.first().find('input')).val();
-  //     reloadMessages(oldMessageId, 'add message');
-  //   }
-  // });
-  // bot返答メッセージクリック時(回答する答えの構築)
+  }, 5000); // チームトークルームのメッセージデータの取得と表示(画面一番上にスクロールすることで発火)
+
+  mainContent.scroll(function () {
+    var topDistance = mainContent.scrollTop();
+
+    if (topDistance === 0 && mainBar.css('display') === 'block' && mainContent.css('position') !== 'absolute') {
+      var oldMessageId = messageContent.first().find('input').val();
+      reloadMessages(oldMessageId, 'add message');
+    }
+  }); // bot返答メッセージクリック時(回答する答えの構築)
 
   $('body').on('click', '.res-btn', function () {
     var resNumber = parseInt($(this).val()); // どの選択肢が選ばれたか回答番号を取得
@@ -737,7 +806,7 @@ $(function () {
         }
       }).fail(function () {
         // setTimeout(function() {
-        alertMessage.text('新しいメッセージをありません');
+        alertMessage.text('新しいメッセージはありません');
         alertMessage.css("display", "block"); // }, 3000);
 
         setTimeout(function () {
@@ -745,58 +814,67 @@ $(function () {
           alertMessage.text('');
         }, 5000);
       });
-    } // else if (str === 'add message')
-    //   $('.loader').css('display', 'block');
-    //   $.ajax({
-    //     type: 'GET',
-    //     url: 'message/index',
-    //     data: '{ 'old_message_id: messageId }',
-    //     dataType: 'json'
-    //   })
-    //   .done(function(newMessages) {
-    //    if (newMessages.length > 0) {
-    //       setTimeout(function() {
-    //         $('.loader').css('display', 'none');
-    //       }, 3000);
-    //       setTimeout(function() {
-    //         for (let i = 0; i < newMessages.length; i++) {
-    //           const html = buildTalkMessage(newMessages[i]);
-    //           talkBox.prepend(html);
-    //         }
-    //         alertMessage.text('メッセージ読み込みに成功しました');
-    //         alertMessage.css("display", "block");
-    //       }, 3000);
-    //       setTimeout(function() {
-    //         alertMessage.css('display', 'none');
-    //         alertMessage.text('');
-    //       }, 5000);
-    //     }
-    //   })
-    //   .fail(function() {
-    //     setTimeout(function() {
-    //       $('.loader').css('display', 'none');
-    //     }, 3000);
-    //     setTimeout(function() {
-    //       alertMessage.text('メッセージ読み込みに失敗しました');
-    //       alertMessage.css("display", "block");
-    //     }, 3000);
-    //     setTimeout(function() {
-    //       alertMessage.css('display', 'none');
-    //       alertMessage.text('');
-    //     }, 5000);
-    //   });
-    // }
-
+    } else if (str === 'add message') {
+      $('.loader').css('display', 'block');
+      setTimeout(function () {
+        $('.loader').css('display', 'none');
+      }, 6000);
+      setTimeout(function () {
+        alertMessage.text('これよりも前に投稿されたメッセージはありません');
+        alertMessage.css("display", "block");
+      }, 6000);
+      setTimeout(function () {
+        alertMessage.css('display', 'none');
+        alertMessage.text('');
+      }, 10000); // $.ajax({
+      //   type: 'GET',
+      //   url: 'message/index',
+      //   data: { old_message_id: messageId },
+      //   dataType: 'json'
+      // })
+      // .done(function(newMessages) {
+      //   if (newMessages.length > 0) {
+      //     setTimeout(function() {
+      //       $('.loader').css('display', 'none');
+      //     }, 3000);
+      //     setTimeout(function() {
+      //       for (let i = 0; i < newMessages.length; i++) {
+      //         const html = buildTalkMessage(newMessages[i]);
+      //         talkBox.prepend(html);
+      //       }
+      //       alertMessage.text('メッセージ読み込みに成功しました');
+      //       alertMessage.css("display", "block");
+      //     }, 3000);
+      //     setTimeout(function() {
+      //       alertMessage.css('display', 'none');
+      //       alertMessage.text('');
+      //     }, 5000);
+      //   }
+      // })
+      // .fail(function() {
+      //   setTimeout(function() {
+      //     $('.loader').css('display', 'none');
+      //   }, 3000);
+      //   setTimeout(function() {
+      //     alertMessage.text('メッセージ読み込みに失敗しました');
+      //     alertMessage.css("display", "block");
+      //   }, 3000);
+      //   setTimeout(function() {
+      //     alertMessage.css('display', 'none');
+      //     alertMessage.text('');
+      //   }, 5000);
+      // });
+    }
   }
 
   ; // 新規メッセージのHTML構築
 
   function buildTalkMessage(message) {
     if (message.member_photo) {
-      var html = "<div class=\"main-content__main-bar__talk-box__content\" data-message-id=\"".concat(message.id, "\">\n            <div class=\"main-content__main-bar__talk-box__content__info\">\n                <div class=\"left-info\">\n                    <div class=\"left-info__img\">\n                        <img src=\"images/").concat(message.member_photo, "\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n                    </div>\n                    <div class=\"left-info__user-name\">\n                        <p data-author-id=\"").concat(message.id, "\">").concat(message.name, "</p>\n                    </div>\n                </div>\n                <div class=\"right-info\">\n                    <p class=\"right-info__registered-date\">").concat(message.registered_at, "</p>\n                </div>\n            </div>\n            <div class=\"main-content__main-bar__talk-box__content__message\">\n                <div class=\"message-text\">\n                    <pre>").concat(changeCode(message.message), "</pre>\n                </div>\n            </div>\n        </div>");
+      var html = "<div class=\"main-content__main-bar__talk-box__content\" data-message-id=\"".concat(message.id, "\">\n            <div class=\"main-content__main-bar__talk-box__content__info\">\n                <div class=\"left-info\">\n                    <div class=\"left-info__img\">\n                        <img src=\"images/").concat(message.member_photo, "\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n                    </div>\n                    <div class=\"left-info__user-name\">\n                        <p data-author-id=\"").concat(message.id, "\">").concat(message.name, "</p>\n                    </div>\n                </div>\n                <div class=\"right-info\">\n                    <p class=\"right-info__registered-date\">").concat(message.registered_at, "</p>\n                </div>\n            </div>\n            <div class=\"main-content__main-bar__talk-box__content__message\">\n                <div class=\"message-text\">\n                    ").concat(changeCode(message.message), "\n                </div>\n            </div>\n        </div>");
       return html;
     } else {
-      var _html = "<div class=\"main-content__main-bar__talk-box__content\" data-message-id=\"".concat(message.id, "\">\n            <div class=\"main-content__main-bar__talk-box__content__info\">\n                <div class=\"left-info\">\n                    <div class=\"left-info__img\">\n                        <img src=\"images/no-image.png\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n                    </div>\n                    <div class=\"left-info__user-name\">\n                        <p data-author-id=\"").concat(message.id, "\">").concat(message.name, "</p>\n                    </div>\n                </div>\n                <div class=\"right-info\">\n                    <p class=\"right-info__registered-date\">").concat(message.registered_at, "</p>\n                </div>\n            </div>\n            <div class=\"main-content__main-bar__talk-box__content__message\">\n                <div class=\"message-text\">\n                    <pre>").concat(changeCode(message.message), "</pre>\n                </div>\n            </div>\n        </div>");
+      var _html = "<div class=\"main-content__main-bar__talk-box__content\" data-message-id=\"".concat(message.id, "\">\n            <div class=\"main-content__main-bar__talk-box__content__info\">\n                <div class=\"left-info\">\n                    <div class=\"left-info__img\">\n                        <img src=\"images/no-image.png\" alt=\"\u30E6\u30FC\u30B6\u30FC\u306E\u30A2\u30A4\u30B3\u30F3\">\n                    </div>\n                    <div class=\"left-info__user-name\">\n                        <p data-author-id=\"").concat(message.id, "\">").concat(message.name, "</p>\n                    </div>\n                </div>\n                <div class=\"right-info\">\n                    <p class=\"right-info__registered-date\">").concat(message.registered_at, "</p>\n                </div>\n            </div>\n            <div class=\"main-content__main-bar__talk-box__content__message\">\n                <div class=\"message-text\">\n                    ").concat(changeCode(message.message), "\n                </div>\n            </div>\n        </div>");
 
       return _html;
     }
@@ -1114,7 +1192,6 @@ $(function () {
         if (techs[h][0] && techs[h][0].team_id === openTeamId) {
           for (var i = 0; i < techs[h].length; i++) {
             if (techs[h][i].code !== null) {
-              console.log(techs[h][i].code);
               var code = changeCode(techs[h][i].code);
               var preCode = changePreTag(code);
               var languageName = idChangeLanguageName(techs[h][i].language_id);

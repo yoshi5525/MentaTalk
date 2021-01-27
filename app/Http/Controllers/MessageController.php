@@ -18,14 +18,12 @@ class MessageController extends Controller
     {
         if ($request->ajax()) {
             $newMessageId = $request->input('new_message_id');
-            // dd($newMessageId);
             $newMessageTeamId = DB::table('messages')->where('id', '=', $newMessageId)->first(['team_id']);
             $newMessages = DB::table('messages')
                     ->join('members', 'messages.member_id', '=', 'members.id')
                     ->select('messages.*', 'members.name', 'members.member_photo')
                     ->where('messages.id', '>', $newMessageId)->where('messages.team_id', $newMessageTeamId->team_id)
                     ->orderBy('messages.id', 'asc')->get();
-            // dd($newMessages);
             return response()->json($newMessages);
         }
     }

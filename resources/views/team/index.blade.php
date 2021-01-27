@@ -60,7 +60,8 @@
                         <form action="{{ route('member.store') }}" method="POST" class="talk-form">
                             @csrf
                             <div class="talk-form__form-icons">
-                                <p class="text-count">残り文字数<br><span id="message-count">1000</span></p>
+                                <p class="text-count">残り文字<br><span id="message-count">1000</span></p>
+                                <p class="input-member"><span id="input-member-name"></span><br>さん入力中...</p>
                                 <label>
                                     <input type="submit" id="talk-send">
                                     <i class="fas fa-paper-plane"></i>

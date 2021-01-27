@@ -28,8 +28,9 @@ $(function() {
     $('.main-content__main-bar__form').addClass('toggle');
   }
   // 画面読み込み時に、チームトーク画面の最新メッセージを表示
-  if (document.URL.match(/^http:\/\/127.0.0.1:8000$/) || document.URL.match(/^http:\/\/127.0.0.1:8000\/index$/)) {
-    $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
+  if ($(window).width() >= 1140 && document.URL.match(/^http:\/\/127.0.0.1:8000/) || document.URL.match(/^http:\/\/127.0.0.1:8000\/index/)) {
+    $('.main-content__main-bar__form').addClass('toggle');
+    // $('.main-content').scrollTop($('.main-content__main-bar')[0].scrollHeight);
   }
 
 
@@ -183,11 +184,65 @@ $(function() {
 
 
   // テキストエリア操作時の文字数カウント表示・非表示
+  // focusすると入力中情報更新
+  let inputMemberId = 0;
+  let focusMemberId = 0;
+  let focusStatus = 0;
   $('#form-text').focusin(function() {
+    inputMemberId = member.id;
     $('.text-count').css('display', 'block');
+    $.ajax({
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      url: "inputSearchRegister",
+      type: "POST",
+      data: {
+              'open_member_id': inputMemberId,
+              'open_team_id': openTeamId,
+            },
+      dataType: 'json',
+    })
+    .done(function(result){
+      focusMemberId = result[1].input_member;
+      if (focusMemberId !== member.id) {
+        focusStatus = result[1].input_status;
+        $('#input-member-name').text(result[0]);
+        $('.input-member').css('display', 'block');
+      }
+    })
+    .fail(function(){
+      $('.input-member').css('display', 'none');
+      $('#input-member-name').text('');
+      focusMemberId = 0;
+      focusStatus = 0;
+    });
   });
+  // focusを外すと入力情報削除
   $('#form-text').focusout(function() {
+    $('#input-member-name').text('');
     $('.text-count').css('display', 'none');
+    $('.input-member').css('display', 'none');
+    $.ajax({
+      headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+      },
+      url: "inputSearchDelete",
+      type: "POST",
+      data: {
+              'open_member_id': inputMemberId,
+              'open_team_id': openTeamId,
+            },
+      dataType: 'json',
+    })
+    .done(function(result){
+      focusMemberId = 0;
+      focusStatus = 0;
+    })
+    .fail(function(){
+      focusMemberId = 0;
+      focusStatus = 0;
+    });
   });
 
 
@@ -273,7 +328,6 @@ $(function() {
                 'team_id': currentTeamId,
                 'message': messageData,
                 'language_id': selectLanguageId,
-                // 'tech': '',
               },
         dataType: 'json',
       })
@@ -316,17 +370,34 @@ $(function() {
         lastMessageId = 0;
       }
     }
-  },3000);
+    // 他のチームメンバーが入力していないかチェック
+    if (focusStatus > 0) {
+      $.ajax({
+        type: 'GET',
+        url: 'inputSearch',
+        data: { 'open_team_id': openTeamId },
+        dataType: 'json'
+      })
+      .done(function (value) {
+        $('#input-member-name').text(value.name);
+        $('.input-member').css('display', 'block');
+      })
+      .fail(function () {
+        $('#input-member-name').text('');
+        $('.input-member').css('display', 'none');
+      });
+    }
+  },5000);
 
 
   // チームトークルームのメッセージデータの取得と表示(画面一番上にスクロールすることで発火)
-  // mainContent.scroll(function() {
-  //   let topDistance = mainContent.scrollTop();
-  //   if (topDistance === 0 && mainBar.css('display') === 'block' && mainContent.css('position') !== 'absolute') {
-  //     let oldMessageId = (messageContent.first().find('input')).val();
-  //     reloadMessages(oldMessageId, 'add message');
-  //   }
-  // });
+  mainContent.scroll(function() {
+    let topDistance = mainContent.scrollTop();
+    if (topDistance === 0 && mainBar.css('display') === 'block' && mainContent.css('position') !== 'absolute') {
+      let oldMessageId = (messageContent.first().find('input')).val();
+      reloadMessages(oldMessageId, 'add message');
+    }
+  });
 
 
   // bot返答メッセージクリック時(回答する答えの構築)
@@ -535,7 +606,7 @@ $(function() {
       })
       .fail(function() {
         // setTimeout(function() {
-          alertMessage.text('新しいメッセージをありません');
+          alertMessage.text('新しいメッセージはありません');
           alertMessage.css("display", "block");
         // }, 3000);
         setTimeout(function() {
@@ -544,47 +615,58 @@ $(function() {
         }, 5000);
       });
     }
-    // else if (str === 'add message')
-    //   $('.loader').css('display', 'block');
-    //   $.ajax({
-    //     type: 'GET',
-    //     url: 'message/index',
-    //     data: '{ 'old_message_id: messageId }',
-    //     dataType: 'json'
-    //   })
-    //   .done(function(newMessages) {
-    //    if (newMessages.length > 0) {
-    //       setTimeout(function() {
-    //         $('.loader').css('display', 'none');
-    //       }, 3000);
-    //       setTimeout(function() {
-    //         for (let i = 0; i < newMessages.length; i++) {
-    //           const html = buildTalkMessage(newMessages[i]);
-    //           talkBox.prepend(html);
-    //         }
-    //         alertMessage.text('メッセージ読み込みに成功しました');
-    //         alertMessage.css("display", "block");
-    //       }, 3000);
-    //       setTimeout(function() {
-    //         alertMessage.css('display', 'none');
-    //         alertMessage.text('');
-    //       }, 5000);
-    //     }
-    //   })
-    //   .fail(function() {
-    //     setTimeout(function() {
-    //       $('.loader').css('display', 'none');
-    //     }, 3000);
-    //     setTimeout(function() {
-    //       alertMessage.text('メッセージ読み込みに失敗しました');
-    //       alertMessage.css("display", "block");
-    //     }, 3000);
-    //     setTimeout(function() {
-    //       alertMessage.css('display', 'none');
-    //       alertMessage.text('');
-    //     }, 5000);
-    //   });
-    // }
+    else if (str === 'add message') {
+      $('.loader').css('display', 'block');
+      setTimeout(function() {
+        $('.loader').css('display', 'none');
+      }, 6000);
+      setTimeout(function() {
+        alertMessage.text('これよりも前に投稿されたメッセージはありません');
+        alertMessage.css("display", "block");
+      }, 6000);
+      setTimeout(function() {
+        alertMessage.css('display', 'none');
+        alertMessage.text('');
+      }, 10000);
+      // $.ajax({
+      //   type: 'GET',
+      //   url: 'message/index',
+      //   data: { old_message_id: messageId },
+      //   dataType: 'json'
+      // })
+      // .done(function(newMessages) {
+      //   if (newMessages.length > 0) {
+      //     setTimeout(function() {
+      //       $('.loader').css('display', 'none');
+      //     }, 3000);
+      //     setTimeout(function() {
+      //       for (let i = 0; i < newMessages.length; i++) {
+      //         const html = buildTalkMessage(newMessages[i]);
+      //         talkBox.prepend(html);
+      //       }
+      //       alertMessage.text('メッセージ読み込みに成功しました');
+      //       alertMessage.css("display", "block");
+      //     }, 3000);
+      //     setTimeout(function() {
+      //       alertMessage.css('display', 'none');
+      //       alertMessage.text('');
+      //     }, 5000);
+      //   }
+      // })
+      // .fail(function() {
+      //   setTimeout(function() {
+      //     $('.loader').css('display', 'none');
+      //   }, 3000);
+      //   setTimeout(function() {
+      //     alertMessage.text('メッセージ読み込みに失敗しました');
+      //     alertMessage.css("display", "block");
+      //   }, 3000);
+      //   setTimeout(function() {
+      //     alertMessage.css('display', 'none');
+      //     alertMessage.text('');
+      //   }, 5000);
+      // });
+    }
   };
 
 
@@ -608,7 +690,7 @@ $(function() {
             </div>
             <div class="main-content__main-bar__talk-box__content__message">
                 <div class="message-text">
-                    <pre>${changeCode(message.message)}</pre>
+                    ${changeCode(message.message)}
                 </div>
             </div>
         </div>`
@@ -631,7 +713,7 @@ $(function() {
             </div>
             <div class="main-content__main-bar__talk-box__content__message">
                 <div class="message-text">
-                    <pre>${changeCode(message.message)}</pre>
+                    ${changeCode(message.message)}
                 </div>
             </div>
         </div>`
@@ -970,7 +1052,6 @@ $(function() {
         if (techs[h][0] && techs[h][0].team_id === openTeamId) {
           for (let i = 0; i < techs[h].length; i++) {
             if (techs[h][i].code !== null) {
-              console.log(techs[h][i].code);
               const code = changeCode(techs[h][i].code);
               const preCode = changePreTag(code);
               const languageName = idChangeLanguageName(techs[h][i].language_id);

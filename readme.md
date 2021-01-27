@@ -7,7 +7,7 @@
 ![チームチャット動画](https://user-images.githubusercontent.com/63286009/105942376-7511c780-60a2-11eb-8462-a09ef6586e27.gif)
 
 #### 3.コード自動保存
-![コード自動保存動画](https://user-images.githubusercontent.com/63286009/105942294-47c51980-60a2-11eb-9d3a-d7e053cc83bf.gif)
+![コード自動保存動画]()
 
 #### 4.チャットボット
 ![チャットボット動画](https://user-images.githubusercontent.com/63286009/105942126-f9177f80-60a1-11eb-8da4-1ad851311b47.gif)
@@ -40,13 +40,16 @@
 #### 3.チームチャット機能
 <img src="https://user-images.githubusercontent.com/63286009/105933588-117f9e00-6092-11eb-8fe4-0111dc84d875.png" alt="チームチャット" width="800px"><br>
 
-#### 4.会話中のcode自動保存機能 (右側のスマホ画面は関係ないです...)
+#### 4.チャットメッセージのロード機能 (もっと見る...みたいな機能)
+<img src="https://user-images.githubusercontent.com/63286009/105980502-4b739300-60d8-11eb-9981-9eee99f9bf74.png" alt="もっと見る機能" width="800px"><br>
+
+#### 5.会話中のcode自動保存機能 (右側のスマホ画面は関係ないです...)
 <img src="https://user-images.githubusercontent.com/63286009/105933685-41c73c80-6092-11eb-8666-36552edc8309.png" alt="code自動保存" width="800px"><br>
 
-#### 5.bot機能
+#### 6.bot機能
 <img src="https://user-images.githubusercontent.com/63286009/105933869-789d5280-6092-11eb-81cb-1a3105e5a4b1.png" alt="bot会話" width="800px"><br>
 
-#### 6.コード一覧閲覧機能
+#### 7.コード一覧閲覧機能
 <img src="https://user-images.githubusercontent.com/63286009/105933930-95398a80-6092-11eb-9dbc-72514ce49789.png" alt="code一覧表示" width="800px"><br><br>
 
 ## 開発環境(使用技術)
