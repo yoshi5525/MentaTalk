@@ -249,6 +249,10 @@
 
           &__message {
             padding: 10px;
+
+            .message-text {
+              white-space: pre-line;
+            }
           }
         }
       }
@@ -299,6 +303,27 @@
               .text-count {
                 display: none;
                 order: 1;
+                text-align: right;
+                margin: 0 10px;
+
+                #message-count {
+                  padding-right: 5px;
+                }
+              }
+
+              .input-member {
+                display: none;
+                font-size: 10px;
+                line-height: 1.2em;
+                color: #fff;
+                order: 2;
+
+                #input-member-name {
+                  padding: 0;
+                  margin: 0;
+                  font-size: 16px;
+                  font-weight: normal;
+                }
               }
 
               #message-photo, #message-tag {
@@ -372,6 +397,11 @@
             }
           }
         }
+      }
+      &__form.toggle {
+        position: absolute;
+        left: -100%;
+        top: -100%;
       }
     }
 
@@ -602,7 +632,7 @@
       .toggle {
         position: absolute;
         left: -100%;
-        top: 0%;
+        top: -100%;
       }
 
       .side-content {

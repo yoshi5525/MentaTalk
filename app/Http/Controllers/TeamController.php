@@ -33,8 +33,6 @@ class TeamController extends Controller
                         ->join('members', 'messages.member_id', '=', 'members.id')
                         ->select('messages.*', 'members.name', 'members.member_photo')
                         ->where('messages.team_id', $teamIds[$i])->orderBy('messages.id', 'asc')->get();
-            // $messages[] = DB::table('messages')->join('members', 'messages.member_id', '=', 'members.id')
-            //             ->where('messages.team_id', $teamIds[$i])->orderBy('messages.id', 'asc')->get();
         }
         // 所属しているチームのコード一覧を取得
         $techs = [];
@@ -43,8 +41,6 @@ class TeamController extends Controller
                         ->join('members', 'techs.member_id', '=', 'members.id')
                         ->select('techs.*', 'members.name', 'members.member_photo')
                         ->where('techs.team_id', $teamIds[$i])->orderBy('techs.id', 'asc')->get();
-            // $techs[] = DB::table('techs')->join('members', 'techs.member_id', '=', 'members.id')
-            //         ->where('techs.team_id', $teamIds[$i])->orderBy('techs.id', 'asc')->get();
         }
 
         return view('team.index', compact('member', 'teamMembers', 'messages', 'techs'));
@@ -136,5 +132,61 @@ class TeamController extends Controller
     public function destroy($id)
     {
         //
+    }
+
+    public function inputSearch(Request $request)
+    {
+        if ($request->ajax()) {
+            $openTeamId = $request->input('open_team_id');
+            $inputMemberId = DB::table('teams')->select('input_member')
+                                ->where('id', '=', $openTeamId)->first();
+            $inputMemberName = DB::table('members')->select('name')
+                                ->where('id', '=', $inputMemberId->input_member)->first();
+            return response()->json($inputMemberName);
+        }
+        // $members = Member::all();
+        // return view('team.index', compact('members'));
+    }
+
+    public function inputSearchRegister(Request $request)
+    {
+        $openTeamId = $request->input('open_team_id');
+        $openMemberId = $request->input('open_member_id');
+        DB::beginTransaction();
+        try {
+            DB::table('teams')->where('id', $openTeamId)
+                            ->update(['input_member' => $openMemberId, 'input_status' => 1]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            // return redirect('/');
+        }
+        DB::commit();
+        $inputMember = Member::with('teams')->find($openTeamId);
+        $inputMemberName = $inputMember->name;
+        $query = DB::table('teams');
+        $inputStatus = $query->select('input_status', 'input_member')->where('teams.id', $openTeamId)->first();
+        $result = [$inputMemberName, $inputStatus];
+        return response()->json($result);
+    }
+
+    public function inputSearchDelete(Request $request)
+    {
+        $openTeamId = $request->input('open_team_id');
+        $openMemberId = $request->input('open_member_id');
+        DB::beginTransaction();
+        try {
+            DB::table('teams')->where('id', $openTeamId)
+                            ->update(['input_member' => 0, 'input_status' => 0]);
+        } catch (Exception $e) {
+            DB::rollBack();
+            // return redirect('/');
+        }
+        DB::commit();
+        // $inputMember = Member::with('teams')->find($openTeamId);
+        // $inputMemberName = $inputMember->name;
+        // $query = DB::table('teams');
+        // $inputStatus = $query->select('input_status', 'input_member')->where('teams.id', $openTeamId)->first();
+        // $result = [$inputMemberName, $inputStatus];
+        return response()->json();
     }
 }

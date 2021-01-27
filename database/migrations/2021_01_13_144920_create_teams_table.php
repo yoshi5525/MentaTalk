@@ -17,6 +17,8 @@ class CreateTeamsTable extends Migration
             $table->bigIncrements('id');
             $table->string('team_name', 20);
             $table->string('team_photo', 50)->nullable();
+            $table->integer('input_status')->default(0);
+            $table->integer('input_member')->default(0);
             $table->timestamps();
         });
     }

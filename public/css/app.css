@@ -389,6 +389,9 @@ a:hover, i:hover {
 .contents .main-content__main-bar__talk-box__content__message {
   padding: 10px;
 }
+.contents .main-content__main-bar__talk-box__content__message .message-text {
+  white-space: pre-line;
+}
 .contents .main-content__main-bar__form {
   position: fixed;
   bottom: 0;
@@ -432,6 +435,24 @@ a:hover, i:hover {
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons .text-count {
   display: none;
   order: 1;
+  text-align: right;
+  margin: 0 10px;
+}
+.contents .main-content__main-bar__form__message-form .talk-form__form-icons .text-count #message-count {
+  padding-right: 5px;
+}
+.contents .main-content__main-bar__form__message-form .talk-form__form-icons .input-member {
+  display: none;
+  font-size: 10px;
+  line-height: 1.2em;
+  color: #fff;
+  order: 2;
+}
+.contents .main-content__main-bar__form__message-form .talk-form__form-icons .input-member #input-member-name {
+  padding: 0;
+  margin: 0;
+  font-size: 16px;
+  font-weight: normal;
 }
 .contents .main-content__main-bar__form__message-form .talk-form__form-icons #message-photo, .contents .main-content__main-bar__form__message-form .talk-form__form-icons #message-tag {
   position: relative;
@@ -491,6 +512,11 @@ a:hover, i:hover {
   border-width: 10px;
   pointer-events: none;
   content: " ";
+}
+.contents .main-content__main-bar__form.toggle {
+  position: absolute;
+  left: -100%;
+  top: -100%;
 }
 .contents .main-content__bot-page {
   padding-top: 30px;
@@ -672,7 +698,7 @@ a:hover, i:hover {
   body .contents .toggle {
     position: absolute;
     left: -100%;
-    top: 0%;
+    top: -100%;
   }
   body .contents .side-content {
     background: inherit;

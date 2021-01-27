@@ -100,16 +100,12 @@ class MemberController extends Controller
             $newMessages[] = $messageQuery->join('members', 'messages.member_id', '=', 'members.id')
                                             ->select('messages.*', 'members.name', 'members.member_photo')
                                             ->where('messages.team_id', $teamId)->where('messages.id', $lastMessageId)->get();
-            // $newMessages[] = $messageQuery->join('members', 'messages.member_id', '=', 'members.id')
-            //                     ->where('messages.team_id', $teamId)->where('messages.id', $lastMessageId)->get();
             if ($techSaved) {
                 $lastTechId = DB::table('techs')->where('team_id', $teamId)->max('id');
                 $techQuery = DB::table('techs');
                 $newMessages[] = $techQuery->join('members', 'techs.member_id', '=', 'members.id')
                                             ->select('techs.*', 'members.name', 'members.member_photo')
                                             ->where('techs.team_id', $teamId)->where('techs.id', $lastTechId)->get();
-                // $newMessages[] = $techQuery->join('members', 'techs.member_id', '=', 'members.id')
-                //                     ->where('techs.team_id', $teamId)->where('techs.id', $lastTechId)->get();
                 return response()->json($newMessages);
             }
             return response()->json($newMessages);
